@@ -1,0 +1,108 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", "Inter Placeholder", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", monospace;
+
+  --color-brand-purple: #9d16f1;
+  --color-brand-blue: #1632f1;
+
+  --color-canvas: #f7f7fa;
+  --color-surface: #ffffff;
+  --color-border: #e6e6ec;
+  --color-border-strong: #d4d4dd;
+  --color-ink: #15151f;
+  --color-ink-secondary: #6b6b78;
+  --color-ink-tertiary: #9999a3;
+
+  --color-success-bg: #e6f6ed;
+  --color-success-fg: #0e6b3a;
+  --color-warning-bg: #fdf1de;
+  --color-warning-fg: #8a5a0b;
+  --color-info-bg: #e9ecfd;
+  --color-info-fg: #1632f1;
+  --color-danger-bg: #fbeaea;
+  --color-danger-fg: #a31515;
+
+  --color-type-blue-bg: #e9ecfd;
+  --color-type-blue-fg: #1632f1;
+  --color-type-teal-bg: #e1f5ee;
+  --color-type-teal-fg: #085041;
+  --color-type-pink-bg: #fbeaf0;
+  --color-type-pink-fg: #72243e;
+  --color-type-coral-bg: #faece7;
+  --color-type-coral-fg: #712b13;
+  --color-type-green-bg: #eaf3de;
+  --color-type-green-fg: #27500a;
+  --color-type-amber-bg: #faeeda;
+  --color-type-amber-fg: #633806;
+  --color-type-purple-bg: #eeedfe;
+  --color-type-purple-fg: #3c3489;
+  --color-type-indigo-bg: #e8eafb;
+  --color-type-indigo-fg: #2b3380;
+  --color-type-violet-bg: #f2e8fc;
+  --color-type-violet-fg: #4a1d7a;
+  --color-type-rose-bg: #fce9ee;
+  --color-type-rose-fg: #7a1d3d;
+  --color-type-lime-bg: #f1f7dd;
+  --color-type-lime-fg: #3d5407;
+
+  --radius-md: 8px;
+  --radius-lg: 14px;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    background: var(--color-canvas);
+    color: var(--color-ink);
+  }
+  ::selection {
+    background: var(--color-brand-purple);
+    color: white;
+  }
+  *:focus-visible {
+    outline: 2px solid var(--color-brand-blue);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .input-field {
+    @apply w-full h-9 px-3 rounded-lg border text-sm bg-white;
+    border-color: var(--color-border);
+  }
+  .input-field:focus {
+    border-color: var(--color-brand-blue);
+    outline: none;
+  }
+
+  .btn-primary {
+    @apply h-9 px-4 rounded-lg text-sm font-medium text-white inline-flex items-center gap-2 transition-colors;
+    background: var(--color-brand-blue);
+  }
+  .btn-primary:hover {
+    background: #1228c9;
+  }
+
+  .btn-secondary {
+    @apply h-9 px-4 rounded-lg text-sm font-medium inline-flex items-center gap-2 bg-white border transition-colors;
+    border-color: var(--color-border);
+    color: var(--color-ink);
+  }
+  .btn-secondary:hover {
+    background: var(--color-canvas);
+  }
+
+  .card {
+    @apply bg-white border rounded-2xl;
+    border-color: var(--color-border);
+  }
+
+  .badge {
+    @apply text-xs px-2 py-0.5 rounded-md font-medium inline-flex items-center gap-1;
+  }
+}
