@@ -17,7 +17,7 @@ function AddBlockModal({ onAdd, onClose }) {
   const [label, setLabel] = useState('');
   const [fieldValues, setFieldValues] = useState({});
   const [error, setError] = useState('');
-r
+
   function handleTypeSelect(type) {
     setSelectedType(type);
     setLabel(type.label);
