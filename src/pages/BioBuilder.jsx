@@ -4,8 +4,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 
 const QUICK_TYPES = [
-  { key: 'url',       label: 'Website / URL',  icon: 'Globe',          color: 'blue',   fields: [{ key: 'url', label: 'URL', type: 'url', placeholder: 'https://...' }] },
-  { key: 'phone',     label: 'Phone call',      icon: 'Phone',          color: 'green',  fields: [{ key: 'phone', label: 'Phone number', type: 'tel', placeholder: '+254 700 000 000' }] },
+  { key: 'website',   label: 'Website / URL',  icon: 'Globe',          color: 'blue',   fields: [{ key: 'url', label: 'URL', type: 'url', placeholder: 'https://...' }] },
+  { key: 'call',      label: 'Phone call',      icon: 'Phone',          color: 'green',  fields: [{ key: 'phone', label: 'Phone number', type: 'tel', placeholder: '+254 700 000 000' }] },
   { key: 'whatsapp',  label: 'WhatsApp',        icon: 'MessageCircle',  color: 'pink',   fields: [{ key: 'url', label: 'WhatsApp link', type: 'url', placeholder: 'https://wa.me/254700000000' }] },
   { key: 'email',     label: 'Email',           icon: 'Mail',           color: 'amber',  fields: [{ key: 'to', label: 'Email address', type: 'email', placeholder: 'you@example.com' }] },
   { key: 'social',    label: 'Social media',    icon: 'Share2',         color: 'teal',   fields: [{ key: 'url', label: 'Profile URL', type: 'url', placeholder: 'https://instagram.com/...' }] },
@@ -17,7 +17,7 @@ function AddBlockModal({ onAdd, onClose }) {
   const [label, setLabel] = useState('');
   const [fieldValues, setFieldValues] = useState({});
   const [error, setError] = useState('');
-
+r
   function handleTypeSelect(type) {
     setSelectedType(type);
     setLabel(type.label);
