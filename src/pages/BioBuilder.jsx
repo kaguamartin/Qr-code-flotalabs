@@ -283,7 +283,7 @@ export default function BioBuilder() {
         </div>
         <p className="text-sm font-medium mb-1">No link-in-bio pages yet</p>
         <p className="text-xs mb-4" style={{ color: 'var(--color-ink-secondary)' }}>
-          Create a new link and choose "Link-in-bio" as the destination type to get started.
+          Create a new link and  choose "Link-in-bio" as the destination type to get started.
         </p>
         <a href="/app/links/new" className="btn-primary text-sm">
           <Icons.Plus size={15} /> Create bio page
