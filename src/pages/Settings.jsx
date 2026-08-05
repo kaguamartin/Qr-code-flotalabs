@@ -3,20 +3,6 @@ import * as Icons from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 
-const navTop = [
-  { icon: 'Settings2', label: 'General', active: true },
-  { icon: 'Palette', label: 'Branding' },
-  { icon: 'Globe2', label: 'Domains' },
-  { icon: 'Users', label: 'Team & roles' },
-  { icon: 'Plug', label: 'Integrations' },
-  { icon: 'Bell', label: 'Notifications' },
-];
-const navBottom = [
-  { icon: 'User', label: 'Profile' },
-  { icon: 'ShieldCheck', label: 'Security' },
-  { icon: 'CreditCard', label: 'Billing & plans', todo: true },
-];
-
 const industries = [
   'FMCG', 'Banking', 'Telecom', 'Finance', 'Education',
   'Gaming', 'Retail', 'Healthcare', 'Hospitality', 'Other',
@@ -26,206 +12,414 @@ function Toggle({ on, onChange }) {
   return (
     <button
       onClick={onChange}
-      className="w-9 h-5 rounded-full relative transition-colors"
-      style={{ background: on ? 'var(--color-brand-blue)' : 'var(--color-canvas)', border: `1px solid ${on ? 'var(--color-brand-blue)' : 'var(--color-border)'}` }}
+      className="w-9 h-5 rounded-full relative transition-colors shrink-0"
+      style={{
+        background: on ? 'var(--color-brand-blue)' : 'var(--color-canvas)',
+        border: `1px solid ${on ? 'var(--color-brand-blue)' : 'var(--color-border)'}`,
+      }}
     >
-      <div className="w-3.5 h-3.5 rounded-full bg-white absolute top-0.5 transition-all" style={{ left: on ? 18 : 2, border: on ? 'none' : '1px solid var(--color-border)' }} />
+      <div
+        className="w-3.5 h-3.5 rounded-full bg-white absolute top-0.5 transition-all"
+        style={{ left: on ? 18 : 2, border: on ? 'none' : '1px solid var(--color-border)' }}
+      />
     </button>
   );
 }
 
-export default function Settings() {
-  const { membership } = useAuth();
-  const org = membership?.organizations;
-  const orgId = org?.id;
+function SaveBar({ saving, success, error, onSave }) {
+  return (
+    <div className="flex items-center justify-end gap-3 pt-3 border-t mt-3" style={{ borderColor: 'var(--color-border)' }}>
+      {success && (
+        <span className="text-xs flex items-center gap-1" style={{ color: 'var(--color-success-fg)' }}>
+          <Icons.CheckCircle size={13} /> Saved
+        </span>
+      )}
+      {error && (
+        <span className="text-xs" style={{ color: 'var(--color-danger-fg)' }}>{error}</span>
+      )}
+      <button onClick={onSave} disabled={saving} className="btn-primary text-xs h-8 disabled:opacity-60">
+        {saving ? <><Icons.Loader size={12} className="animate-spin" /> Saving...</> : 'Save changes'}
+      </button>
+    </div>
+  );
+}
 
-  const [orgName, setOrgName] = useState('');
-  const [industry, setIndustry] = useState('');
+// ── GENERAL ──────────────────────────────────────────────
+function GeneralSection({ org, onUpdate }) {
+  const [orgName, setOrgName] = useState(org?.name ?? '');
+  const [industry, setIndustry] = useState(org?.industry ?? '');
   const [saving, setSaving] = useState(false);
-  const [saveSuccess, setSaveSuccess] = useState(false);
-  const [saveError, setSaveError] = useState('');
-  const [notifs, setNotifs] = useState([true, true, false, false]);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState('');
 
-  const notifLabels = [
+  useEffect(() => {
+    setOrgName(org?.name ?? '');
+    setIndustry(org?.industry ?? '');
+  }, [org]);
+
+  async function save() {
+    setSaving(true); setError(''); setSuccess(false);
+    const { error } = await supabase
+      .from('organizations')
+      .update({ name: orgName.trim(), industry: industry || null })
+      .eq('id', org.id);
+    setSaving(false);
+    if (error) { setError(error.message); }
+    else { setSuccess(true); onUpdate({ name: orgName.trim(), industry }); setTimeout(() => setSuccess(false), 2000); }
+  }
+
+  return (
+    <div className="card p-5">
+      <p className="text-sm font-medium mb-4">General</p>
+      <div className="grid grid-cols-2 gap-3 mb-3">
+        <div>
+          <label className="text-xs block mb-1.5" style={{ color: 'var(--color-ink-secondary)' }}>Workspace name</label>
+          <input className="input-field" value={orgName} onChange={(e) => setOrgName(e.target.value)} />
+        </div>
+        <div>
+          <label className="text-xs block mb-1.5" style={{ color: 'var(--color-ink-secondary)' }}>Industry</label>
+          <select className="input-field" value={industry} onChange={(e) => setIndustry(e.target.value)}>
+            <option value="">Select industry...</option>
+            {industries.map((i) => <option key={i} value={i}>{i}</option>)}
+          </select>
+        </div>
+      </div>
+      <div>
+        <label className="text-xs block mb-1.5" style={{ color: 'var(--color-ink-secondary)' }}>Default link domain</label>
+        <select className="input-field max-w-60">
+          <option>flotalabs.co.ke</option>
+          <option>Custom domain (Pro)</option>
+        </select>
+      </div>
+      <SaveBar saving={saving} success={success} error={error} onSave={save} />
+    </div>
+  );
+}
+
+// ── BRANDING ─────────────────────────────────────────────
+function BrandingSection({ org, onUpdate }) {
+  const [primaryColor, setPrimaryColor] = useState(org?.primary_color ?? '#9d16f1');
+  const [qrStyle, setQrStyle] = useState(org?.qr_style ?? 'classic');
+  const [saving, setSaving] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    setPrimaryColor(org?.primary_color ?? '#9d16f1');
+    setQrStyle(org?.qr_style ?? 'classic');
+  }, [org]);
+
+  async function save() {
+    setSaving(true); setError(''); setSuccess(false);
+    const { error } = await supabase
+      .from('organizations')
+      .update({ primary_color: primaryColor, qr_style: qrStyle })
+      .eq('id', org.id);
+    setSaving(false);
+    if (error) { setError(error.message); }
+    else { setSuccess(true); onUpdate({ primary_color: primaryColor, qr_style: qrStyle }); setTimeout(() => setSuccess(false), 2000); }
+  }
+
+  return (
+    <div className="card p-5">
+      <p className="text-sm font-medium mb-4">Branding</p>
+
+      <div className="mb-4">
+        <p className="text-xs mb-2" style={{ color: 'var(--color-ink-secondary)' }}>Logo</p>
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-xl shrink-0 flex items-center justify-center text-white font-bold" style={{ background: `linear-gradient(135deg, ${primaryColor}, var(--color-brand-blue))` }}>
+            {org?.name?.charAt(0)?.toUpperCase() ?? 'F'}
+          </div>
+          <div>
+            <button className="btn-secondary text-xs h-8 mb-1">Upload logo</button>
+            <p className="text-[11px]" style={{ color: 'var(--color-ink-tertiary)' }}>PNG or SVG, max 2MB. Logo upload coming soon.</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 mb-3">
+        <div>
+          <label className="text-xs block mb-1.5" style={{ color: 'var(--color-ink-secondary)' }}>Primary color</label>
+          <div className="flex items-center gap-2">
+            <input
+              type="color"
+              value={primaryColor}
+              onChange={(e) => setPrimaryColor(e.target.value)}
+              className="w-9 h-9 rounded-lg border cursor-pointer"
+              style={{ borderColor: 'var(--color-border)', padding: 2 }}
+            />
+            <input
+              className="input-field font-mono text-xs flex-1"
+              value={primaryColor}
+              onChange={(e) => setPrimaryColor(e.target.value)}
+              placeholder="#9d16f1"
+            />
+          </div>
+          <p className="text-[11px] mt-1" style={{ color: 'var(--color-ink-tertiary)' }}>Used on QR codes and bio pages.</p>
+        </div>
+        <div>
+          <label className="text-xs block mb-1.5" style={{ color: 'var(--color-ink-secondary)' }}>Default QR style</label>
+          <select className="input-field" value={qrStyle} onChange={(e) => setQrStyle(e.target.value)}>
+            <option value="classic">Classic squares</option>
+            <option value="rounded">Rounded dots</option>
+            <option value="branded">Branded (with logo)</option>
+          </select>
+        </div>
+      </div>
+
+      <SaveBar saving={saving} success={success} error={error} onSave={save} />
+    </div>
+  );
+}
+
+// ── PROFILE ───────────────────────────────────────────────
+function ProfileSection({ profile }) {
+  const [fullName, setFullName] = useState(profile?.full_name ?? '');
+  const [saving, setSaving] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => { setFullName(profile?.full_name ?? ''); }, [profile]);
+
+  async function save() {
+    setSaving(true); setError(''); setSuccess(false);
+    const { error } = await supabase
+      .from('users')
+      .update({ full_name: fullName.trim() })
+      .eq('id', profile.id);
+    setSaving(false);
+    if (error) { setError(error.message); }
+    else { setSuccess(true); setTimeout(() => setSuccess(false), 2000); }
+  }
+
+  return (
+    <div className="card p-5">
+      <p className="text-sm font-medium mb-4">Profile</p>
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg shrink-0" style={{ background: 'linear-gradient(135deg, var(--color-brand-purple), var(--color-brand-blue))' }}>
+          {fullName?.charAt(0)?.toUpperCase() ?? '?'}
+        </div>
+        <div>
+          <p className="text-sm font-medium">{fullName || '—'}</p>
+          <p className="text-xs" style={{ color: 'var(--color-ink-secondary)' }}>{profile?.email}</p>
+        </div>
+      </div>
+      <div className="mb-3">
+        <label className="text-xs block mb-1.5" style={{ color: 'var(--color-ink-secondary)' }}>Full name</label>
+        <input className="input-field" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Your full name" />
+      </div>
+      <div className="mb-3">
+        <label className="text-xs block mb-1.5" style={{ color: 'var(--color-ink-secondary)' }}>Email address</label>
+        <input className="input-field" value={profile?.email ?? ''} disabled style={{ opacity: 0.6 }} />
+        <p className="text-[11px] mt-1" style={{ color: 'var(--color-ink-tertiary)' }}>Email changes require re-authentication. Contact support.</p>
+      </div>
+      <SaveBar saving={saving} success={success} error={error} onSave={save} />
+    </div>
+  );
+}
+
+// ── SECURITY ──────────────────────────────────────────────
+function SecuritySection({ signOut }) {
+  const [twoFactor, setTwoFactor] = useState(false);
+  const [sessionTimeout, setSessionTimeout] = useState('4 hours');
+
+  async function handleChangePassword() {
+    const { error } = await supabase.auth.resetPasswordForEmail(
+      (await supabase.auth.getUser()).data.user?.email ?? '',
+      { redirectTo: `${window.location.origin}/reset-password` }
+    );
+    if (!error) alert('Password reset email sent. Check your inbox.');
+  }
+
+  return (
+    <div className="card p-5">
+      <p className="text-sm font-medium mb-4">Security</p>
+
+      <div className="flex justify-between items-center py-3 border-b" style={{ borderColor: 'var(--color-border)' }}>
+        <div>
+          <p className="text-sm">Two-factor authentication</p>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--color-ink-tertiary)' }}>Require 2FA for all workspace members. Coming soon.</p>
+        </div>
+        <Toggle on={twoFactor} onChange={() => setTwoFactor(!twoFactor)} />
+      </div>
+
+      <div className="flex justify-between items-center py-3 border-b" style={{ borderColor: 'var(--color-border)' }}>
+        <div>
+          <p className="text-sm">Session timeout</p>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--color-ink-tertiary)' }}>Auto sign-out after inactivity.</p>
+        </div>
+        <select className="input-field w-28 h-8 text-xs" value={sessionTimeout} onChange={(e) => setSessionTimeout(e.target.value)}>
+          <option>4 hours</option>
+          <option>8 hours</option>
+          <option>24 hours</option>
+        </select>
+      </div>
+
+      <div className="flex justify-between items-center py-3 border-b" style={{ borderColor: 'var(--color-border)' }}>
+        <div>
+          <p className="text-sm">Change password</p>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--color-ink-tertiary)' }}>Send a password reset link to your email.</p>
+        </div>
+        <button onClick={handleChangePassword} className="btn-secondary text-xs h-8">Send reset link</button>
+      </div>
+
+      <div className="flex justify-between items-center py-3">
+        <div>
+          <p className="text-sm">Sign out</p>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--color-ink-tertiary)' }}>Sign out of your account on this device.</p>
+        </div>
+        <button onClick={signOut} className="btn-secondary text-xs h-8" style={{ color: 'var(--color-danger-fg)' }}>Sign out</button>
+      </div>
+    </div>
+  );
+}
+
+// ── NOTIFICATIONS ─────────────────────────────────────────
+function NotificationsSection() {
+  const [notifs, setNotifs] = useState([true, true, false, false]);
+  const labels = [
     'New scan milestones (every 1,000 scans)',
     'Weekly performance summary email',
     'Team member joins or leaves',
     'Link expiring soon',
   ];
 
+  return (
+    <div className="card p-5">
+      <p className="text-sm font-medium mb-1">Notifications</p>
+      <p className="text-xs mb-4" style={{ color: 'var(--color-ink-secondary)' }}>
+        Email notification preferences. Full notification settings coming soon.
+      </p>
+      <div className="flex flex-col gap-3">
+        {labels.map((label, i) => (
+          <div key={label} className="flex justify-between items-center gap-4">
+            <span className="text-sm">{label}</span>
+            <Toggle on={notifs[i]} onChange={() => setNotifs(notifs.map((n, j) => (j === i ? !n : n)))} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── DOMAINS ───────────────────────────────────────────────
+function DomainsSection({ org }) {
+  return (
+    <div className="card p-5">
+      <p className="text-sm font-medium mb-1">Custom domains</p>
+      <p className="text-xs mb-4" style={{ color: 'var(--color-ink-secondary)' }}>
+        Use your own domain for short links instead of flotalabs.co.ke.
+      </p>
+      <div className="rounded-xl border border-dashed p-4 flex items-center justify-between" style={{ borderColor: 'var(--color-border-strong)' }}>
+        <div className="flex items-center gap-2.5">
+          <Icons.Globe size={18} style={{ color: 'var(--color-ink-tertiary)' }} />
+          <div>
+            <p className="text-sm font-medium">Custom domain</p>
+            <p className="text-xs" style={{ color: 'var(--color-ink-tertiary)' }}>Currently using flotalabs.co.ke</p>
+          </div>
+        </div>
+        <span className="text-xs font-medium px-2.5 py-1 rounded-md" style={{ background: 'var(--color-warning-bg)', color: 'var(--color-warning-fg)' }}>Pro</span>
+      </div>
+    </div>
+  );
+}
+
+// ── BILLING ───────────────────────────────────────────────
+function BillingSection() {
+  return (
+    <div className="card p-5">
+      <p className="text-sm font-medium mb-1">Billing & plans</p>
+      <p className="text-xs mb-4" style={{ color: 'var(--color-ink-secondary)' }}>
+        Manage your subscription and billing details.
+      </p>
+      <div
+        className="rounded-2xl border border-dashed p-5 flex justify-between items-center"
+        style={{ borderColor: 'var(--color-border-strong)', background: 'repeating-linear-gradient(45deg, var(--color-canvas), var(--color-canvas) 10px, white 10px, white 20px)' }}
+      >
+        <div className="flex items-center gap-2.5">
+          <Icons.CreditCard size={18} style={{ color: 'var(--color-ink-tertiary)' }} />
+          <div>
+            <p className="text-sm font-medium">Billing & plans</p>
+            <p className="text-xs" style={{ color: 'var(--color-ink-tertiary)' }}>Not yet built — coming soon.</p>
+          </div>
+        </div>
+        <span className="text-xs font-medium px-2.5 py-1 rounded-md" style={{ background: 'var(--color-warning-bg)', color: 'var(--color-warning-fg)' }}>TODO</span>
+      </div>
+    </div>
+  );
+}
+
+// ── MAIN ──────────────────────────────────────────────────
+const NAV_TOP = [
+  { key: 'general',       icon: 'Settings2',   label: 'General' },
+  { key: 'branding',      icon: 'Palette',      label: 'Branding' },
+  { key: 'domains',       icon: 'Globe2',       label: 'Domains' },
+  { key: 'notifications', icon: 'Bell',         label: 'Notifications' },
+];
+const NAV_BOTTOM = [
+  { key: 'profile',  icon: 'User',        label: 'Profile' },
+  { key: 'security', icon: 'ShieldCheck', label: 'Security' },
+  { key: 'billing',  icon: 'CreditCard',  label: 'Billing & plans' },
+];
+
+export default function Settings() {
+  const { profile, membership, signOut } = useAuth();
+  const [org, setOrg] = useState(membership?.organizations ?? null);
+  const [activeSection, setActiveSection] = useState('general');
+
   useEffect(() => {
-    if (!org) return;
-    setOrgName(org.name ?? '');
-    setIndustry(org.industry ?? '');
-  }, [org]);
+    setOrg(membership?.organizations ?? null);
+  }, [membership]);
 
-  async function handleSaveGeneral(e) {
-    e.preventDefault();
-    setSaving(true);
-    setSaveError('');
-    setSaveSuccess(false);
+  function handleOrgUpdate(updates) {
+    setOrg((prev) => ({ ...prev, ...updates }));
+  }
 
-    const { error } = await supabase
-      .from('organizations')
-      .update({ name: orgName.trim(), industry: industry || null })
-      .eq('id', orgId);
-
-    if (error) {
-      setSaveError(error.message);
-    } else {
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 2000);
+  function renderSection() {
+    switch (activeSection) {
+      case 'general':       return <GeneralSection org={org} onUpdate={handleOrgUpdate} />;
+      case 'branding':      return <BrandingSection org={org} onUpdate={handleOrgUpdate} />;
+      case 'domains':       return <DomainsSection org={org} />;
+      case 'notifications': return <NotificationsSection />;
+      case 'profile':       return <ProfileSection profile={profile} />;
+      case 'security':      return <SecuritySection signOut={signOut} />;
+      case 'billing':       return <BillingSection />;
+      default:              return <GeneralSection org={org} onUpdate={handleOrgUpdate} />;
     }
-    setSaving(false);
+  }
+
+  function NavItem({ item }) {
+    const Icon = Icons[item.icon] ?? Icons.Circle;
+    const active = activeSection === item.key;
+    return (
+      <button
+        onClick={() => setActiveSection(item.key)}
+        className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-sm text-left transition-colors"
+        style={active ? { background: 'var(--color-info-bg)', color: 'var(--color-info-fg)' } : { color: 'var(--color-ink-secondary)' }}
+      >
+        <Icon size={14} />
+        <span className="flex-1">{item.label}</span>
+      </button>
+    );
   }
 
   return (
     <div className="flex gap-6">
+      {/* sidebar nav */}
       <div className="w-44 shrink-0">
         <p className="text-xs uppercase tracking-wide mb-2 px-2" style={{ color: 'var(--color-ink-tertiary)' }}>Workspace</p>
         <div className="flex flex-col gap-0.5 mb-4">
-          {navTop.map((item) => {
-            const Icon = Icons[item.icon] ?? Icons.Circle;
-            return (
-              <div key={item.label} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-sm cursor-pointer" style={item.active ? { background: 'var(--color-info-bg)', color: 'var(--color-info-fg)' } : { color: 'var(--color-ink-secondary)' }}>
-                <Icon size={14} /> {item.label}
-              </div>
-            );
-          })}
+          {NAV_TOP.map((item) => <NavItem key={item.key} item={item} />)}
         </div>
         <p className="text-xs uppercase tracking-wide mb-2 px-2" style={{ color: 'var(--color-ink-tertiary)' }}>Account</p>
         <div className="flex flex-col gap-0.5">
-          {navBottom.map((item) => {
-            const Icon = Icons[item.icon] ?? Icons.Circle;
-            return (
-              <div key={item.label} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-sm cursor-pointer" style={{ color: 'var(--color-ink-secondary)' }}>
-                <Icon size={14} /> <span className="flex-1">{item.label}</span>
-                {item.todo && <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ background: 'var(--color-warning-bg)', color: 'var(--color-warning-fg)' }}>TODO</span>}
-              </div>
-            );
-          })}
+          {NAV_BOTTOM.map((item) => <NavItem key={item.key} item={item} />)}
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col gap-4 max-w-2xl">
-        <form onSubmit={handleSaveGeneral} className="card p-5">
-          <div className="flex items-center justify-between mb-3.5">
-            <p className="text-sm font-medium">General</p>
-            <div className="flex items-center gap-2">
-              {saveSuccess && (
-                <span className="text-xs" style={{ color: 'var(--color-success-fg)' }}>✓ Saved</span>
-              )}
-              {saveError && (
-                <span className="text-xs" style={{ color: 'var(--color-danger-fg)' }}>{saveError}</span>
-              )}
-              <button type="submit" disabled={saving} className="btn-primary text-xs h-8 disabled:opacity-60">
-                {saving ? 'Saving...' : 'Save changes'}
-              </button>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3 mb-3">
-            <div>
-              <label className="text-xs block mb-1.5" style={{ color: 'var(--color-ink-secondary)' }}>Workspace name</label>
-              <input
-                className="input-field"
-                value={orgName}
-                onChange={(e) => setOrgName(e.target.value)}
-                required
-              />
-            </div>
-            <div>
-              <label className="text-xs block mb-1.5" style={{ color: 'var(--color-ink-secondary)' }}>Industry</label>
-              <select
-                className="input-field"
-                value={industry}
-                onChange={(e) => setIndustry(e.target.value)}
-              >
-                <option value="">Select industry...</option>
-                {industries.map((i) => (
-                  <option key={i} value={i}>{i}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <label className="text-xs block mb-1.5" style={{ color: 'var(--color-ink-secondary)' }}>Default link domain</label>
-          <select className="input-field max-w-60">
-            <option>flota.ke</option>
-            <option>Custom domain (Pro)</option>
-          </select>
-        </form>
-
-        <div className="card p-5">
-          <p className="text-sm font-medium mb-3.5">Branding</p>
-          <div className="flex gap-3.5 items-center mb-3.5">
-            <div className="w-12 h-12 rounded-xl shrink-0" style={{ background: 'linear-gradient(135deg, var(--color-brand-purple), var(--color-brand-blue))' }} />
-            <button className="btn-secondary text-xs h-8">Upload logo</button>
-          </div>
-          <div className="flex gap-3.5">
-            <div>
-              <label className="text-xs block mb-1.5" style={{ color: 'var(--color-ink-secondary)' }}>Primary color</label>
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-md border" style={{ background: 'var(--color-brand-purple)', borderColor: 'var(--color-border)' }} />
-                <input className="input-field font-mono text-xs w-24" defaultValue="#9d16f1" />
-              </div>
-            </div>
-            <div>
-              <label className="text-xs block mb-1.5" style={{ color: 'var(--color-ink-secondary)' }}>QR code style</label>
-              <select className="input-field w-36">
-                <option>Classic squares</option>
-                <option>Rounded dots</option>
-                <option>Branded (with logo)</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <div className="card p-5">
-          <p className="text-sm font-medium mb-3">Notifications</p>
-          <div className="flex flex-col gap-2.5">
-            {notifLabels.map((label, i) => (
-              <div key={label} className="flex justify-between items-center">
-                <span className="text-sm">{label}</span>
-                <Toggle on={notifs[i]} onChange={() => setNotifs(notifs.map((n, j) => (j === i ? !n : n)))} />
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="card p-5">
-          <p className="text-sm font-medium mb-3">Security</p>
-          <div className="flex justify-between items-center py-2 border-b" style={{ borderColor: 'var(--color-border)' }}>
-            <div>
-              <p className="text-sm">Two-factor authentication</p>
-              <p className="text-xs" style={{ color: 'var(--color-ink-tertiary)' }}>Require 2FA for all workspace members</p>
-            </div>
-            <Toggle on={false} onChange={() => {}} />
-          </div>
-          <div className="flex justify-between items-center py-2">
-            <div>
-              <p className="text-sm">Session timeout</p>
-              <p className="text-xs" style={{ color: 'var(--color-ink-tertiary)' }}>Auto sign-out after inactivity</p>
-            </div>
-            <select className="input-field w-28 h-8 text-xs">
-              <option>4 hours</option>
-              <option>8 hours</option>
-              <option>24 hours</option>
-            </select>
-          </div>
-        </div>
-
-        <div
-          className="rounded-2xl border border-dashed p-5 flex justify-between items-center"
-          style={{ borderColor: 'var(--color-border-strong)', background: 'repeating-linear-gradient(45deg, var(--color-canvas), var(--color-canvas) 10px, white 10px, white 20px)' }}
-        >
-          <div className="flex items-center gap-2.5">
-            <Icons.CreditCard size={18} style={{ color: 'var(--color-ink-tertiary)' }} />
-            <div>
-              <p className="text-sm font-medium">Billing & plans</p>
-              <p className="text-xs" style={{ color: 'var(--color-ink-tertiary)' }}>Not yet built</p>
-            </div>
-          </div>
-          <span className="text-xs font-medium px-2.5 py-1 rounded-md" style={{ background: 'var(--color-warning-bg)', color: 'var(--color-warning-fg)' }}>TO DO</span>
-        </div>
+      {/* section content */}
+      <div className="flex-1 max-w-2xl">
+        {renderSection()}
       </div>
     </div>
   );

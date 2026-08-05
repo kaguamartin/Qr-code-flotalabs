@@ -15,11 +15,13 @@ import TeamRoles from './pages/TeamRoles';
 import Integrations from './pages/Integrations';
 import Settings from './pages/Settings';
 import SuperAdmin from './pages/SuperAdmin';
+import PublicBioPage from './pages/PublicBioPage';
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/p/:shortCode" element={<PublicBioPage />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/" element={<Navigate to="/app" replace />} />
