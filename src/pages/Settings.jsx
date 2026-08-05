@@ -4,8 +4,28 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 
 const industries = [
-  'FMCG', 'Banking', 'Telecom', 'Finance', 'Education',
-  'Gaming', 'Retail', 'Healthcare', 'Hospitality', 'Other',
+  // Consumer & Retail
+  'FMCG', 'Retail', 'E-commerce', 'Fashion & Apparel', 'Food & Beverage', 'Supermarkets & Grocery',
+  // Marketing & Media
+  'Advertising & Marketing', 'Media & Entertainment', 'PR & Communications', 'Events & Experiential',
+  // Financial Services
+  'Banking', 'Insurance', 'Microfinance', 'Fintech', 'Investment & Wealth Management', 'Saccos & Cooperatives',
+  // Technology
+  'Telecom', 'Software & SaaS', 'Gaming', 'IT Services & Consulting',
+  // Health & Wellness
+  'Healthcare', 'Pharmaceuticals', 'Beauty & Personal Care', 'Fitness & Wellness',
+  // Education
+  'Education', 'Training & Coaching', 'EdTech',
+  // Professional Services
+  'Legal & Consulting', 'Accounting & Audit', 'Recruitment & HR',
+  // Property & Infrastructure
+  'Real Estate', 'Construction', 'Architecture & Design',
+  // Transport & Logistics
+  'Logistics & Transport', 'Automotive', 'Aviation',
+  // Other Sectors
+  'Agriculture & Agribusiness', 'Manufacturing', 'Energy & Utilities',
+  'Hospitality & Tourism', 'Religious Organisations', 'NGO & Non-profit',
+  'Government & Public Sector', 'Other',
 ];
 
 function Toggle({ on, onChange }) {
@@ -275,29 +295,49 @@ function SecuritySection({ signOut }) {
 }
 
 // ── NOTIFICATIONS ─────────────────────────────────────────
-function NotificationsSection() {
-  const [notifs, setNotifs] = useState([true, true, false, false]);
+function NotificationsSection({ profile }) {
+  const [prefs, setPrefs] = useState({
+    notification_scan_milestones: profile?.notification_scan_milestones ?? true,
+    notification_weekly_summary: profile?.notification_weekly_summary ?? true,
+    notification_team_changes: profile?.notification_team_changes ?? false,
+    notification_link_expiring: profile?.notification_link_expiring ?? false,
+  });
+  const [saving, setSaving] = useState(false);
+  const [success, setSuccess] = useState(false);
+
   const labels = [
-    'New scan milestones (every 1,000 scans)',
-    'Weekly performance summary email',
-    'Team member joins or leaves',
-    'Link expiring soon',
+    { key: 'notification_scan_milestones', label: 'New scan milestones (every 1,000 scans)' },
+    { key: 'notification_weekly_summary',  label: 'Weekly performance summary email' },
+    { key: 'notification_team_changes',    label: 'Team member joins or leaves' },
+    { key: 'notification_link_expiring',   label: 'Link expiring soon' },
   ];
+
+  async function save() {
+    setSaving(true);
+    await supabase.from('users').update(prefs).eq('id', profile.id);
+    setSaving(false);
+    setSuccess(true);
+    setTimeout(() => setSuccess(false), 2000);
+  }
 
   return (
     <div className="card p-5">
       <p className="text-sm font-medium mb-1">Notifications</p>
       <p className="text-xs mb-4" style={{ color: 'var(--color-ink-secondary)' }}>
-        Email notification preferences. Full notification settings coming soon.
+        Choose which email notifications you receive.
       </p>
-      <div className="flex flex-col gap-3">
-        {labels.map((label, i) => (
-          <div key={label} className="flex justify-between items-center gap-4">
+      <div className="flex flex-col gap-3 mb-4">
+        {labels.map(({ key, label }) => (
+          <div key={key} className="flex justify-between items-center gap-4">
             <span className="text-sm">{label}</span>
-            <Toggle on={notifs[i]} onChange={() => setNotifs(notifs.map((n, j) => (j === i ? !n : n)))} />
+            <Toggle
+              on={prefs[key]}
+              onChange={() => setPrefs((prev) => ({ ...prev, [key]: !prev[key] }))}
+            />
           </div>
         ))}
       </div>
+      <SaveBar saving={saving} success={success} error="" onSave={save} />
     </div>
   );
 }
@@ -380,7 +420,7 @@ export default function Settings() {
       case 'general':       return <GeneralSection org={org} onUpdate={handleOrgUpdate} />;
       case 'branding':      return <BrandingSection org={org} onUpdate={handleOrgUpdate} />;
       case 'domains':       return <DomainsSection org={org} />;
-      case 'notifications': return <NotificationsSection />;
+      case 'notifications': return <NotificationsSection profile={profile} />;
       case 'profile':       return <ProfileSection profile={profile} />;
       case 'security':      return <SecuritySection signOut={signOut} />;
       case 'billing':       return <BillingSection />;

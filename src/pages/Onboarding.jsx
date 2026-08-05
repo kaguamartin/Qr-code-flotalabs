@@ -78,9 +78,29 @@ export default function Onboarding() {
   }
 
   const industries = [
-    'FMCG', 'Banking', 'Telecom', 'Finance', 'Education',
-    'Gaming', 'Retail', 'Healthcare', 'Hospitality', 'Other',
-  ];
+  // Consumer & Retail
+  'FMCG', 'Retail', 'E-commerce', 'Fashion & Apparel', 'Food & Beverage', 'Supermarkets & Grocery',
+  // Marketing & Media
+  'Advertising & Marketing', 'Media & Entertainment', 'PR & Communications', 'Events & Experiential',
+  // Financial Services
+  'Banking', 'Insurance', 'Microfinance', 'Fintech', 'Investment & Wealth Management', 'Saccos & Cooperatives',
+  // Technology
+  'Telecom', 'Software & SaaS', 'Gaming', 'IT Services & Consulting',
+  // Health & Wellness
+  'Healthcare', 'Pharmaceuticals', 'Beauty & Personal Care', 'Fitness & Wellness',
+  // Education
+  'Education', 'Training & Coaching', 'EdTech',
+  // Professional Services
+  'Legal & Consulting', 'Accounting & Audit', 'Recruitment & HR',
+  // Property & Infrastructure
+  'Real Estate', 'Construction', 'Architecture & Design',
+  // Transport & Logistics
+  'Logistics & Transport', 'Automotive', 'Aviation',
+  // Other Sectors
+  'Agriculture & Agribusiness', 'Manufacturing', 'Energy & Utilities',
+  'Hospitality & Tourism', 'Religious Organisations', 'NGO & Non-profit',
+  'Government & Public Sector', 'Other',
+];
 
   if (loading) {
     return (
