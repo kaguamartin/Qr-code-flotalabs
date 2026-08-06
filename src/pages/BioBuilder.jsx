@@ -642,9 +642,18 @@ export default function BioBuilder() {
           <div className="card p-4 mb-3.5">
             <p className="text-sm font-medium mb-2.5">Page header</p>
             <div className="flex gap-2.5 items-center">
-              <div className="w-11 h-11 rounded-full shrink-0 flex items-center justify-center text-white font-semibold" style={{ background: 'linear-gradient(135deg, var(--color-brand-purple), var(--color-brand-blue))' }}>
-                {title?.charAt(0)?.toUpperCase() || 'F'}
-              </div>
+              {membership?.organizations?.logo_url ? (
+  <img
+    src={membership.organizations.logo_url}
+    className="w-11 h-11 rounded-xl object-contain border shrink-0"
+    style={{ borderColor: 'var(--color-border)', background: 'white' }}
+    alt="Logo"
+  />
+) : (
+  <div className="w-11 h-11 rounded-full shrink-0 flex items-center justify-center text-white font-semibold" style={{ background: 'linear-gradient(135deg, var(--color-brand-purple), var(--color-brand-blue))' }}>
+    {title?.charAt(0)?.toUpperCase() || 'F'}
+  </div>
+)}
               <div className="flex-1 flex flex-col gap-1.5">
                 <input className="input-field text-sm" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Page title" onBlur={saveHeader} />
                 <input className="input-field text-xs" value={subtitle} onChange={(e) => setSubtitle(e.target.value)} placeholder="Short description" onBlur={saveHeader} />
@@ -719,9 +728,18 @@ export default function BioBuilder() {
             </div>
             <div className="p-5">
               <div className="flex flex-col items-center text-center mb-4">
-                <div className="w-14 h-14 rounded-full mb-2.5 flex items-center justify-center text-white font-bold text-lg" style={{ background: 'linear-gradient(135deg, var(--color-brand-purple), var(--color-brand-blue))' }}>
-                  {title?.charAt(0)?.toUpperCase() || 'F'}
-                </div>
+                {membership?.organizations?.logo_url ? (
+  <img
+  src={membership.organizations.logo_url}
+  className="w-14 h-14 rounded-xl object-contain mb-2.5 border"
+  style={{ borderColor: 'var(--color-border)', background: 'white' }}
+  alt="Logo"
+/>
+) : (
+  <div className="w-14 h-14 rounded-full mb-2.5 flex items-center justify-center text-white font-bold text-lg" style={{ background: 'linear-gradient(135deg, var(--color-brand-purple), var(--color-brand-blue))' }}>
+    {title?.charAt(0)?.toUpperCase() || 'F'}
+  </div>
+)}
                 <p className="font-semibold text-sm">{title || 'Page title'}</p>
                 <p className="text-xs mt-0.5" style={{ color: '#666' }}>{subtitle || 'Short description'}</p>
               </div>

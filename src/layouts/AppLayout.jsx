@@ -26,10 +26,21 @@ export default function AppLayout() {
     <div className="flex min-h-screen">
       <aside className="w-60 shrink-0 border-r bg-white flex flex-col" style={{ borderColor: 'var(--color-border)' }}>
         <div className="h-16 flex items-center gap-2.5 px-5 border-b" style={{ borderColor: 'var(--color-border)' }}>
-          <div
-            className="w-8 h-8 rounded-lg shrink-0"
-            style={{ background: 'linear-gradient(135deg, var(--color-brand-purple), var(--color-brand-blue))' }}
-          />
+          {org?.logo_url ? (
+            <img
+              src={org.logo_url}
+              className="w-8 h-8 rounded-lg object-contain border shrink-0"
+              style={{ borderColor: 'var(--color-border)' }}
+              alt={orgName}
+            />
+          ) : (
+            <div
+              className="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center text-white text-sm font-bold"
+              style={{ background: 'linear-gradient(135deg, var(--color-brand-purple), var(--color-brand-blue))' }}
+            >
+              {orgName?.charAt(0)?.toUpperCase() ?? 'F'}
+            </div>
+          )}
           <div className="min-w-0">
             <p className="text-sm font-medium leading-tight truncate">{orgName}</p>
             <p className="text-xs leading-tight" style={{ color: 'var(--color-ink-secondary)' }}>Workspace</p>
@@ -43,8 +54,7 @@ export default function AppLayout() {
               to={to}
               end={end}
               className={({ isActive }) =>
-                `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
-                  isActive ? 'font-medium' : 'hover:bg-[var(--color-canvas)]'
+                `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${isActive ? 'font-medium' : 'hover:bg-[var(--color-canvas)]'
                 }`
               }
               style={({ isActive }) =>

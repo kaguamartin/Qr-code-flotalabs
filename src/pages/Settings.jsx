@@ -120,6 +120,8 @@ function GeneralSection({ org, onUpdate }) {
 function BrandingSection({ org, onUpdate }) {
   const [primaryColor, setPrimaryColor] = useState(org?.primary_color ?? '#9d16f1');
   const [qrStyle, setQrStyle] = useState(org?.qr_style ?? 'classic');
+  const [logoUrl, setLogoUrl] = useState(org?.logo_url ?? null);
+  const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
@@ -127,7 +129,43 @@ function BrandingSection({ org, onUpdate }) {
   useEffect(() => {
     setPrimaryColor(org?.primary_color ?? '#9d16f1');
     setQrStyle(org?.qr_style ?? 'classic');
+    setLogoUrl(org?.logo_url ?? null);
   }, [org]);
+
+  async function handleLogoUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      setError('Image must be under 2MB.');
+      return;
+    }
+
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (!['jpg', 'jpeg', 'png', 'webp', 'svg'].includes(ext)) {
+      setError('Only JPG, PNG, WebP or SVG images are supported.');
+      return;
+    }
+
+    setUploading(true);
+    setError('');
+
+    const fileName = `org-${org.id}.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(fileName, file, { upsert: true });
+
+    if (uploadError) { setError(uploadError.message); setUploading(false); return; }
+
+    const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(fileName);
+    const publicUrl = urlData.publicUrl + '?t=' + Date.now();
+
+    await supabase.from('organizations').update({ logo_url: publicUrl }).eq('id', org.id);
+    setLogoUrl(publicUrl);
+    onUpdate({ logo_url: publicUrl });
+    setUploading(false);
+  }
 
   async function save() {
     setSaving(true); setError(''); setSuccess(false);
@@ -144,15 +182,47 @@ function BrandingSection({ org, onUpdate }) {
     <div className="card p-5">
       <p className="text-sm font-medium mb-4">Branding</p>
 
+      {/* logo upload */}
       <div className="mb-4">
-        <p className="text-xs mb-2" style={{ color: 'var(--color-ink-secondary)' }}>Logo</p>
+        <p className="text-xs mb-2" style={{ color: 'var(--color-ink-secondary)' }}>Organisation logo</p>
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl shrink-0 flex items-center justify-center text-white font-bold" style={{ background: `linear-gradient(135deg, ${primaryColor}, var(--color-brand-blue))` }}>
-            {org?.name?.charAt(0)?.toUpperCase() ?? 'F'}
+          <div className="relative">
+            {logoUrl ? (
+              <img
+                src={logoUrl}
+                className="w-14 h-14 rounded-xl object-contain border"
+                style={{ borderColor: 'var(--color-border)' }}
+                alt="Logo"
+              />
+            ) : (
+              <div
+                className="w-14 h-14 rounded-xl flex items-center justify-center text-white font-bold text-xl"
+                style={{ background: `linear-gradient(135deg, ${primaryColor}, var(--color-brand-blue))` }}
+              >
+                {org?.name?.charAt(0)?.toUpperCase() ?? 'F'}
+              </div>
+            )}
+            {uploading && (
+              <div className="absolute inset-0 rounded-xl flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.4)' }}>
+                <Icons.Loader size={16} className="animate-spin text-white" />
+              </div>
+            )}
           </div>
           <div>
-            <button className="btn-secondary text-xs h-8 mb-1">Upload logo</button>
-            <p className="text-[11px]" style={{ color: 'var(--color-ink-tertiary)' }}>PNG or SVG, max 2MB. Logo upload coming soon.</p>
+            <label className="btn-secondary text-xs h-8 cursor-pointer flex items-center gap-1.5">
+              <Icons.Upload size={13} />
+              {uploading ? 'Uploading...' : 'Upload logo'}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/svg+xml"
+                className="hidden"
+                onChange={handleLogoUpload}
+                disabled={uploading}
+              />
+            </label>
+            <p className="text-[11px] mt-1" style={{ color: 'var(--color-ink-tertiary)' }}>
+              JPG, PNG, WebP or SVG · Max 2MB · Recommended 200×200px
+            </p>
           </div>
         </div>
       </div>
@@ -187,7 +257,8 @@ function BrandingSection({ org, onUpdate }) {
         </div>
       </div>
 
-      <SaveBar saving={saving} success={success} error={error} onSave={save} />
+      {error && <p className="text-xs mb-2" style={{ color: 'var(--color-danger-fg)' }}>{error}</p>}
+      <SaveBar saving={saving} success={success} error="" onSave={save} />
     </div>
   );
 }
@@ -195,11 +266,50 @@ function BrandingSection({ org, onUpdate }) {
 // ── PROFILE ───────────────────────────────────────────────
 function ProfileSection({ profile }) {
   const [fullName, setFullName] = useState(profile?.full_name ?? '');
+  const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url ?? null);
+  const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => { setFullName(profile?.full_name ?? ''); }, [profile]);
+  useEffect(() => {
+    setFullName(profile?.full_name ?? '');
+    setAvatarUrl(profile?.avatar_url ?? null);
+  }, [profile]);
+
+  async function handleAvatarUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      setError('Image must be under 2MB.');
+      return;
+    }
+
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (!['jpg', 'jpeg', 'png', 'webp'].includes(ext)) {
+      setError('Only JPG, PNG or WebP images are supported.');
+      return;
+    }
+
+    setUploading(true);
+    setError('');
+
+    const fileName = `${profile.id}.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(fileName, file, { upsert: true });
+
+    if (uploadError) { setError(uploadError.message); setUploading(false); return; }
+
+    const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(fileName);
+    const publicUrl = urlData.publicUrl + '?t=' + Date.now();
+
+    await supabase.from('users').update({ avatar_url: publicUrl }).eq('id', profile.id);
+    setAvatarUrl(publicUrl);
+    setUploading(false);
+  }
 
   async function save() {
     setSaving(true); setError(''); setSuccess(false);
@@ -215,29 +325,79 @@ function ProfileSection({ profile }) {
   return (
     <div className="card p-5">
       <p className="text-sm font-medium mb-4">Profile</p>
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg shrink-0" style={{ background: 'linear-gradient(135deg, var(--color-brand-purple), var(--color-brand-blue))' }}>
-          {fullName?.charAt(0)?.toUpperCase() ?? '?'}
+
+      {/* avatar */}
+      <div className="flex items-center gap-4 mb-4">
+        <div className="relative">
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              className="w-14 h-14 rounded-full object-cover"
+              alt="Avatar"
+            />
+          ) : (
+            <div
+              className="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-xl"
+              style={{ background: 'linear-gradient(135deg, var(--color-brand-purple), var(--color-brand-blue))' }}
+            >
+              {fullName?.charAt(0)?.toUpperCase() ?? '?'}
+            </div>
+          )}
+          {uploading && (
+            <div className="absolute inset-0 rounded-full flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.4)' }}>
+              <Icons.Loader size={16} className="animate-spin text-white" />
+            </div>
+          )}
         </div>
         <div>
-          <p className="text-sm font-medium">{fullName || '—'}</p>
-          <p className="text-xs" style={{ color: 'var(--color-ink-secondary)' }}>{profile?.email}</p>
+          <label className="btn-secondary text-xs h-8 cursor-pointer flex items-center gap-1.5">
+            <Icons.Upload size={13} />
+            {uploading ? 'Uploading...' : 'Upload photo'}
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={handleAvatarUpload}
+              disabled={uploading}
+            />
+          </label>
+          <p className="text-[11px] mt-1" style={{ color: 'var(--color-ink-tertiary)' }}>
+            JPG, PNG or WebP · Max 2MB · Recommended 200×200px
+          </p>
         </div>
       </div>
+
       <div className="mb-3">
         <label className="text-xs block mb-1.5" style={{ color: 'var(--color-ink-secondary)' }}>Full name</label>
-        <input className="input-field" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Your full name" />
+        <input
+          className="input-field"
+          value={fullName}
+          onChange={(e) => setFullName(e.target.value)}
+          placeholder="Your full name"
+        />
       </div>
+
       <div className="mb-3">
         <label className="text-xs block mb-1.5" style={{ color: 'var(--color-ink-secondary)' }}>Email address</label>
-        <input className="input-field" value={profile?.email ?? ''} disabled style={{ opacity: 0.6 }} />
-        <p className="text-[11px] mt-1" style={{ color: 'var(--color-ink-tertiary)' }}>Email changes require re-authentication. Contact support.</p>
+        <input
+          className="input-field"
+          value={profile?.email ?? ''}
+          disabled
+          style={{ opacity: 0.6 }}
+        />
+        <p className="text-[11px] mt-1" style={{ color: 'var(--color-ink-tertiary)' }}>
+          Email changes require re-authentication. Contact support.
+        </p>
       </div>
-      <SaveBar saving={saving} success={success} error={error} onSave={save} />
+
+      {error && (
+        <p className="text-xs mb-2" style={{ color: 'var(--color-danger-fg)' }}>{error}</p>
+      )}
+
+      <SaveBar saving={saving} success={success} error="" onSave={save} />
     </div>
   );
 }
-
 // ── SECURITY ──────────────────────────────────────────────
 function SecuritySection({ signOut }) {
   const [twoFactor, setTwoFactor] = useState(false);

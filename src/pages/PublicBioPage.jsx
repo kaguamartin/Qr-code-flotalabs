@@ -53,6 +53,7 @@ function getBlockHref(block) {
 }
 
 export default function PublicBioPage() {
+  const [orgLogoUrl, setOrgLogoUrl] = useState(null);
   const { shortCode } = useParams();
   const [bioPage, setBioPage] = useState(null);
   const [blocks, setBlocks] = useState([]);
@@ -68,11 +69,11 @@ export default function PublicBioPage() {
     setLoading(true);
 
     const { data: link, error: linkError } = await supabase
-      .from('links')
-      .select('id, short_code, destination_types(key)')
-      .eq('short_code', shortCode)
-      .is('archived_at', null)
-      .single();
+  .from('links')
+  .select('id, short_code, org_id, destination_types(key)')
+  .eq('short_code', shortCode)
+  .is('archived_at', null)
+  .single();
 
     if (linkError || !link || link.destination_types?.key !== 'bio_page') {
       setNotFound(true);
@@ -100,7 +101,18 @@ export default function PublicBioPage() {
       .eq('bio_page_id', pageData.id)
       .order('sort_order', { ascending: true });
 
-    setBlocks(blockData ?? []);
+setBlocks(blockData ?? []);
+
+    // fetch org logo
+    if (link.org_id) {
+      const { data: orgData } = await supabase
+        .from('organizations')
+        .select('logo_url')
+        .eq('id', link.org_id)
+        .single();
+      if (orgData?.logo_url) setOrgLogoUrl(orgData.logo_url);
+    }
+
     setLoading(false);
   }
 
@@ -137,12 +149,20 @@ export default function PublicBioPage() {
       <div className="w-full max-w-sm">
         {/* header */}
         <div className="flex flex-col items-center text-center mb-6">
-          <div
-            className="w-20 h-20 rounded-full mb-4 flex items-center justify-center text-white text-2xl font-bold"
-            style={{ background: 'linear-gradient(135deg, #9d16f1, #1877F2)' }}
-          >
-            {initial}
-          </div>
+          {orgLogoUrl ? (
+  <img
+    src={orgLogoUrl}
+    className="w-20 h-20 rounded-full object-cover mb-4"
+    alt="Logo"
+  />
+) : (
+  <div
+    className="w-20 h-20 rounded-full mb-4 flex items-center justify-center text-white text-2xl font-bold"
+    style={{ background: 'linear-gradient(135deg, #9d16f1, #1877F2)' }}
+  >
+    {initial}
+  </div>
+)}
           <h1 className="text-lg font-semibold mb-1">{bioPage?.header_title || ''}</h1>
           {bioPage?.header_subtitle && (
             <p className="text-sm" style={{ color: '#6b7280' }}>{bioPage.header_subtitle}</p>

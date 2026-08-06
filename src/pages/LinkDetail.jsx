@@ -87,15 +87,16 @@ export default function LinkDetail() {
     setError('');
 
     const { data: linkData, error: linkError } = await supabase
-      .from('links')
-      .select(`
-        *,
-        destination_types(key, display_name, encoding_mode, supports_funnel),
-        campaigns(name, corridor)
-      `)
-      .eq('id', id)
-      .eq('org_id', orgId)
-      .single();
+  .from('links')
+  .select(`
+    *,
+    destination_types(key, display_name, encoding_mode, supports_funnel),
+    campaigns(name, corridor),
+    organizations(logo_url, primary_color)
+  `)
+  .eq('id', id)
+  .eq('org_id', orgId)
+  .single();
 
     if (linkError) { setError(linkError.message); setLoading(false); return; }
     setLink(linkData);
@@ -134,7 +135,7 @@ export default function LinkDetail() {
       </div>
     );
   }
-
+  
   const isRedirect = link.destination_types?.encoding_mode === 'redirect';
   const typeKey = link.destination_types?.key ?? '';
   const qrValue = getQrValue(link);
@@ -191,11 +192,17 @@ export default function LinkDetail() {
         <div className="card p-5 flex flex-col items-center text-center">
           <div className="w-36 h-36 flex items-center justify-center mb-3.5">
             <QRCodeSVG
-              id="link-detail-qr"
-              value={qrValue || 'https://flota.ke'}
-              size={144}
-              level="M"
-            />
+  id="link-detail-qr"
+  value={qrValue || 'https://flota.ke'}
+  size={144}
+  level="M"
+  imageSettings={link?.org?.logo_url ? {
+    src: link.org.logo_url,
+    height: 32,
+    width: 32,
+    excavate: true,
+  } : undefined}
+/>
           </div>
           <p className="font-mono text-sm mb-1.5">flota.ke/{link.short_code}</p>
           <TypeChip color={typeColorMap[typeKey] ?? 'blue'}>
