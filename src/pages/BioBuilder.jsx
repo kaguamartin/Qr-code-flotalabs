@@ -604,12 +604,12 @@ export default function BioBuilder() {
               </p>
             )}
             <button
-              onClick={() => setShowNewPageModal(true)}
-              className="text-xs flex items-center gap-1 px-2 py-1 rounded-lg border"
-              style={{ borderColor: 'var(--color-border)', color: 'var(--color-ink-secondary)' }}
-            >
-              <Icons.Plus size={12} /> New page
-            </button>
+  onClick={() => setShowNewPageModal(true)}
+  className="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all active:scale-95"
+  style={{ background: 'var(--color-brand-blue)', color: 'white' }}
+>
+  <Icons.Plus size={12} /> New page
+</button>
           </div>
         </div>
         <div className="flex items-center gap-2">

@@ -102,8 +102,8 @@ function SetupModal({ provider, integration, onClose, onSave }) {
             {(() => {
               const Icon = Icons[meta?.icon] ?? Icons.Plug;
               return (
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--color-type-' + (meta?.color ?? 'blue') + '-bg)' }}>
-                  <Icon size={16} style={{ color: 'var(--color-type-' + (meta?.color ?? 'blue') + '-fg)' }} />
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--color-type-' + (meta.color ?? 'blue') + '-bg)' }}>
+                  <Icon size={16} style={{ color: 'var(--color-type-' + (meta.color ?? 'blue') + '-fg)' }} />
                 </div>
               );
             })()}
@@ -186,8 +186,8 @@ function IntegrationCard({ provider, integration, onConnect, onDisconnect }) {
       <div className="flex justify-between items-start mb-2">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--color-type-' + (meta.color ?? 'blue') + '-bg)' }}>
-            <Icon size={16} style={{ color: 'var(--color-type-' + (meta.color ?? 'blue') + '-fg)' }} />
-          </div>
+  <Icon size={16} style={{ color: 'var(--color-type-' + (meta.color ?? 'blue') + '-fg)' }} />
+</div>
           <p className="text-sm font-medium">{meta.name}</p>
         </div>
         {meta.comingSoon ? (

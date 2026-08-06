@@ -30,19 +30,22 @@ export default function PhonePreview({
     }
 
     if (step === 3) {
-      return (
-        <div className="flex flex-col items-center justify-center h-full gap-3 px-4">
-          <div className="w-8 h-8 rounded-lg" style={{ background: 'linear-gradient(135deg, var(--color-brand-purple), var(--color-brand-blue))' }} />
+  const hasValidQr = qrValue && qrValue.length > 10;
+  return (
+    <div className="flex flex-col items-center justify-center h-full gap-3 px-4">
+      <div className="w-8 h-8 rounded-lg" style={{ background: 'linear-gradient(135deg, var(--color-brand-purple), var(--color-brand-blue))' }} />
+      {hasValidQr ? (
+        <>
           <QRCodeSVG
             id="qr-preview-svg"
-            value={qrValue || 'https://flota.ke'}
+            value={qrValue}
             size={120}
             fgColor={qrColor}
             bgColor="#ffffff"
             level="M"
           />
           <p className="font-mono text-[10px] text-center" style={{ color: 'var(--color-ink-secondary)' }}>
-            {activeType.encoding_mode === 'redirect' ? shortUrl : activeType.display_name}
+            {activeType?.encoding_mode === 'redirect' ? `flota.ke/${orgSlug}-${shortCode}` : activeType?.display_name}
           </p>
           <button
             onClick={onDownload}
@@ -51,10 +54,20 @@ export default function PhonePreview({
           >
             <Icons.Download size={12} /> Download QR
           </button>
+        </>
+      ) : (
+        <div className="flex flex-col items-center gap-2 text-center px-2">
+          <div className="w-24 h-24 rounded-xl border-2 border-dashed flex items-center justify-center" style={{ borderColor: 'var(--color-border)' }}>
+            <Icons.QrCode size={28} style={{ color: 'var(--color-ink-tertiary)' }} />
+          </div>
+          <p className="text-xs" style={{ color: 'var(--color-ink-tertiary)' }}>
+            Fill in the required fields to generate your QR code.
+          </p>
         </div>
-      );
-    }
-
+      )}
+    </div>
+  );
+}
     if (activeType.key === 'wifi') {
       return (
         <div className="flex flex-col items-center justify-center h-full px-4 gap-3">
