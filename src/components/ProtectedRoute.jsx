@@ -16,7 +16,8 @@ export function ProtectedRoute({ children }) {
     return <Navigate to="/login" replace />;
   }
 
-  // super admins don't need an org — they operate across all orgs
+  // only redirect to onboarding once loading is complete
+  // and we're certain the user has no org
   if (!hasOrg && !isSuperAdmin) {
     return <Navigate to="/onboarding" replace />;
   }

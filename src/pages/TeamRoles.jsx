@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { UserPlus, Plus, MoreHorizontal } from 'lucide-react';
+import { UserPlus, Plus, MoreHorizontal, X } from 'lucide-react';
 import { StatusBadge } from '../components/Shared';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
@@ -29,6 +29,18 @@ export default function TeamRoles() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRoleId, setInviteRoleId] = useState('');
+  const [inviting, setInviting] = useState(false);
+  const [inviteError, setInviteError] = useState('');
+  const [inviteSuccess, setInviteSuccess] = useState('');
+
+  const [showNewRoleModal, setShowNewRoleModal] = useState(false);
+  const [newRoleName, setNewRoleName] = useState('');
+  const [creatingRole, setCreatingRole] = useState(false);
+  const [newRoleError, setNewRoleError] = useState('');
+
   useEffect(() => {
     if (!orgId) return;
     loadAll();
@@ -40,10 +52,14 @@ export default function TeamRoles() {
 
     const [membersResult, rolesResult, permissionsResult] = await Promise.all([
       supabase
-        .from('memberships')
-        .select('*, users(full_name, email), roles(id, name)')
-        .eq('org_id', orgId)
-        .order('joined_at', { ascending: true }),
+  .from('memberships')
+  .select(`
+    *,
+    users(full_name, email),
+    roles(id, name)
+  `)
+  .eq('org_id', orgId)
+  .order('invited_at', { ascending: true }),
       supabase
         .from('roles')
         .select('*, role_permissions(enabled, permissions(id, key, group_label, description))')
@@ -84,7 +100,6 @@ export default function TeamRoles() {
     if (error) {
       setError(error.message);
     } else {
-      // update local state optimistically
       setRoles(roles.map((r) => {
         if (r.id !== activeRoleId) return r;
         return {
@@ -100,9 +115,113 @@ export default function TeamRoles() {
     setSaving(false);
   }
 
+  async function handleInvite() {
+    if (!inviteEmail.trim()) { setInviteError('Email is required.'); return; }
+    if (!inviteRoleId) { setInviteError('Please select a role.'); return; }
+
+    setInviting(true);
+    setInviteError('');
+
+    const { data: { session } } = await supabase.auth.getSession();
+
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invite-member`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`,
+          'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({
+          email: inviteEmail.trim(),
+          org_id: orgId,
+          role_id: inviteRoleId,
+        }),
+      }
+    );
+
+    const result = await response.json();
+    setInviting(false);
+
+    if (!response.ok) {
+      setInviteError(result.error ?? 'Failed to send invite.');
+    } else {
+      setInviteSuccess(
+        result.existing_user
+          ? `${inviteEmail} has been added to the workspace.`
+          : `Invite sent to ${inviteEmail}.`
+      );
+      await loadAll();
+    }
+  }
+  async function handleResendInvite(email, roleId) {
+    if (!email || !roleId) return;
+    const { data: { session } } = await supabase.auth.getSession();
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invite-member`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`,
+          'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({
+          email,
+          org_id: orgId,
+          role_id: roleId,
+        }),
+      }
+    );
+    const result = await response.json();
+    if (response.ok) {
+      alert(`Invite resent to ${email}.`);
+    } else {
+      alert(result.error ?? 'Failed to resend invite.');
+    }
+  }
+
+  async function handleCreateRole() {
+    if (!newRoleName.trim()) { setNewRoleError('Role name is required.'); return; }
+    setCreatingRole(true);
+    setNewRoleError('');
+
+    const { data: newRole, error: roleError } = await supabase
+      .from('roles')
+      .insert({ org_id: orgId, name: newRoleName.trim(), is_locked: false })
+      .select()
+      .single();
+
+    if (roleError) { setNewRoleError(roleError.message); setCreatingRole(false); return; }
+
+    // seed all permissions as disabled
+    await supabase.from('role_permissions').insert(
+      permissions.map((p) => ({
+        role_id: newRole.id,
+        permission_id: p.id,
+        enabled: false,
+      }))
+    );
+
+    setCreatingRole(false);
+    setShowNewRoleModal(false);
+    setNewRoleName('');
+    await loadAll();
+    setActiveRoleId(newRole.id);
+  }
+
+  async function handleDeleteRole(roleId) {
+    const role = roles.find((r) => r.id === roleId);
+    if (!role || role.is_locked) return;
+    if (!confirm(`Delete role "${role.name}"? Members with this role will need to be reassigned.`)) return;
+
+    await supabase.from('roles').delete().eq('id', roleId);
+    await loadAll();
+  }
+
   const activeRole = roles.find((r) => r.id === activeRoleId);
 
-  // build permission groups from real permissions data
   const permissionGroups = permissions.reduce((groups, p) => {
     const group = groups.find((g) => g.label === p.group_label);
     if (group) {
@@ -113,12 +232,10 @@ export default function TeamRoles() {
     return groups;
   }, []);
 
-  // count members per role
   function memberCountForRole(roleId) {
     return members.filter((m) => m.roles?.id === roleId && m.status === 'active').length;
   }
 
-  // check if a permission is enabled for the active role
   function isPermissionEnabled(permissionId) {
     if (!activeRole) return false;
     const rp = activeRole.role_permissions?.find((rp) => rp.permissions?.id === permissionId);
@@ -143,6 +260,107 @@ export default function TeamRoles() {
 
   return (
     <div>
+      {/* invite modal */}
+      {showInviteModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ background: 'rgba(0,0,0,0.4)' }}>
+          <div className="card p-6 w-full max-w-sm">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-sm font-medium">Invite team member</p>
+              <button onClick={() => setShowInviteModal(false)} style={{ color: 'var(--color-ink-tertiary)' }}>
+                <X size={16} />
+              </button>
+            </div>
+
+            {inviteSuccess ? (
+              <div className="text-center py-4">
+                <div className="w-10 h-10 rounded-full mx-auto mb-3 flex items-center justify-center" style={{ background: 'var(--color-success-bg)' }}>
+                  <Plus size={20} style={{ color: 'var(--color-success-fg)' }} />
+                </div>
+                <p className="text-sm font-medium mb-1">Done!</p>
+                <p className="text-xs mb-4" style={{ color: 'var(--color-ink-secondary)' }}>{inviteSuccess}</p>
+                <button onClick={() => setShowInviteModal(false)} className="btn-primary w-full justify-center">Close</button>
+              </div>
+            ) : (
+              <>
+                {inviteError && (
+                  <p className="text-xs mb-3 px-3 py-2 rounded-lg" style={{ background: 'var(--color-danger-bg)', color: 'var(--color-danger-fg)' }}>
+                    {inviteError}
+                  </p>
+                )}
+                <div className="flex flex-col gap-3 mb-4">
+                  <div>
+                    <label className="text-xs block mb-1.5" style={{ color: 'var(--color-ink-secondary)' }}>Email address</label>
+                    <input
+                      className="input-field"
+                      type="email"
+                      placeholder="colleague@company.co.ke"
+                      value={inviteEmail}
+                      onChange={(e) => setInviteEmail(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs block mb-1.5" style={{ color: 'var(--color-ink-secondary)' }}>Role</label>
+                    <select
+                      className="input-field"
+                      value={inviteRoleId}
+                      onChange={(e) => setInviteRoleId(e.target.value)}
+                    >
+                      <option value="">Select a role...</option>
+                      {roles.map((r) => (
+                        <option key={r.id} value={r.id}>{r.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => setShowInviteModal(false)} className="btn-secondary flex-1 justify-center">Cancel</button>
+                  <button onClick={handleInvite} disabled={inviting} className="btn-primary flex-1 justify-center disabled:opacity-60">
+                    {inviting ? 'Sending...' : 'Send invite'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* new role modal */}
+      {showNewRoleModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ background: 'rgba(0,0,0,0.4)' }}>
+          <div className="card p-6 w-full max-w-sm">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-sm font-medium">New custom role</p>
+              <button onClick={() => setShowNewRoleModal(false)} style={{ color: 'var(--color-ink-tertiary)' }}>
+                <X size={16} />
+              </button>
+            </div>
+            {newRoleError && (
+              <p className="text-xs mb-3 px-3 py-2 rounded-lg" style={{ background: 'var(--color-danger-bg)', color: 'var(--color-danger-fg)' }}>
+                {newRoleError}
+              </p>
+            )}
+            <div className="mb-4">
+              <label className="text-xs block mb-1.5" style={{ color: 'var(--color-ink-secondary)' }}>Role name</label>
+              <input
+                className="input-field"
+                placeholder="e.g. Campaign Manager"
+                value={newRoleName}
+                onChange={(e) => setNewRoleName(e.target.value)}
+              />
+              <p className="text-[11px] mt-1" style={{ color: 'var(--color-ink-tertiary)' }}>
+                All permissions will be off by default — you can toggle them after creating.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setShowNewRoleModal(false)} className="btn-secondary flex-1 justify-center">Cancel</button>
+              <button onClick={handleCreateRole} disabled={creatingRole} className="btn-primary flex-1 justify-center disabled:opacity-60">
+                {creatingRole ? 'Creating...' : 'Create role'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-lg font-medium">Team & roles</h1>
@@ -150,14 +368,25 @@ export default function TeamRoles() {
             {members.length} {members.length === 1 ? 'member' : 'members'} &middot; {roles.length} {roles.length === 1 ? 'role' : 'roles'}
           </p>
         </div>
-        <button className="btn-primary"><UserPlus size={16} /> Invite member</button>
+        <button
+          className="btn-primary"
+          onClick={() => {
+            setInviteEmail('');
+            setInviteRoleId(roles.find((r) => !r.is_locked)?.id ?? roles[0]?.id ?? '');
+            setInviteError('');
+            setInviteSuccess('');
+            setShowInviteModal(true);
+          }}
+        >
+          <UserPlus size={16} /> Invite member
+        </button>
       </div>
 
       <div className="card overflow-hidden mb-7">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b" style={{ borderColor: 'var(--color-border)' }}>
-              {['Member', 'Role', 'Status', 'Last active', ''].map((h) => (
+              {['Member', 'Role', 'Status', 'Joined / Invited', ''].map((h) => (
                 <th key={h} className="text-left px-5 py-2.5 text-xs font-normal" style={{ color: 'var(--color-ink-secondary)' }}>{h}</th>
               ))}
             </tr>
@@ -170,24 +399,68 @@ export default function TeamRoles() {
                 </td>
               </tr>
             ) : (
-              members.map((m, i) => (
-                <tr key={m.id} className="border-b last:border-0" style={{ borderColor: 'var(--color-border)' }}>
-                  <td className="px-5 py-2.5">
-                    <p>{m.users?.full_name ?? '—'}</p>
-                    <p className="text-xs" style={{ color: 'var(--color-ink-tertiary)' }}>{m.users?.email ?? '—'}</p>
-                  </td>
-                  <td className="py-2.5">
-                    <RoleBadge roleName={m.roles?.name ?? '—'} index={i} />
-                  </td>
-                  <td className="py-2.5"><StatusBadge status={m.status} /></td>
-                  <td className="py-2.5" style={{ color: 'var(--color-ink-secondary)' }}>
-                    {m.last_active_at ? new Date(m.last_active_at).toLocaleDateString() : '—'}
-                  </td>
-                  <td className="py-2.5 px-5 text-right">
-                    <MoreHorizontal size={16} style={{ color: 'var(--color-ink-secondary)' }} />
-                  </td>
-                </tr>
-              ))
+              members.map((m, i) => {
+                const isInvited = m.status === 'invited';
+                const invitedAt = m.invited_at ? new Date(m.invited_at) : null;
+                const hoursAgo = invitedAt ? Math.floor((Date.now() - invitedAt.getTime()) / 3600000) : null;
+                const hoursLeft = invitedAt ? Math.max(0, 24 - hoursAgo) : null;
+                const expired = hoursLeft === 0;
+
+                return (
+                  <tr key={m.id} className="border-b last:border-0" style={{ borderColor: 'var(--color-border)' }}>
+                    <td className="px-5 py-2.5">
+  <p>{m.users?.full_name ?? m.invited_email ?? '—'}</p>
+  <p className="text-xs" style={{ color: 'var(--color-ink-tertiary)' }}>
+    {m.users?.email ?? m.invited_email ?? '—'}
+  </p>
+  {!m.users && m.invited_email && (
+    <p className="text-[11px] mt-0.5" style={{ color: 'var(--color-ink-tertiary)' }}>
+      Awaiting signup
+    </p>
+  )}
+</td>
+                    <td className="py-2.5">
+                      <RoleBadge roleName={m.roles?.name ?? '—'} index={i} />
+                    </td>
+                    <td className="py-2.5">
+                      <StatusBadge status={m.status} />
+                    </td>
+                    <td className="py-2.5" style={{ color: 'var(--color-ink-secondary)' }}>
+                      {isInvited ? (
+                        <div>
+                          {hoursAgo !== null && (
+                            <p className="text-xs" style={{ color: expired ? 'var(--color-danger-fg)' : 'var(--color-ink-secondary)' }}>
+                              {expired
+                                ? 'Invite expired'
+                                : `Invited ${hoursAgo < 1 ? 'just now' : `${hoursAgo}h ago`} · ${hoursLeft}h left`
+                              }
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        m.joined_at
+                          ? new Date(m.joined_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })
+                          : m.last_active_at
+                            ? new Date(m.last_active_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })
+                            : '—'
+                      )}
+                    </td>
+                    <td className="py-2.5 px-5 text-right">
+                      {isInvited ? (
+                        <button
+                         onClick={() => handleResendInvite(m.invited_email ?? m.users?.email, m.roles?.id)}
+                          className="text-xs px-2.5 py-1 rounded-lg border transition-colors hover:bg-[var(--color-canvas)]"
+                          style={{ borderColor: 'var(--color-border)', color: 'var(--color-ink-secondary)' }}
+                        >
+                          Resend
+                        </button>
+                      ) : (
+                        <MoreHorizontal size={16} style={{ color: 'var(--color-ink-secondary)' }} />
+                      )}
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
@@ -195,7 +468,11 @@ export default function TeamRoles() {
 
       <div className="flex items-center justify-between mb-3">
         <p className="text-sm font-medium">Roles</p>
-        <button className="text-xs h-7 px-2.5 rounded-md border flex items-center gap-1.5" style={{ borderColor: 'var(--color-border)' }}>
+        <button
+          onClick={() => { setNewRoleName(''); setNewRoleError(''); setShowNewRoleModal(true); }}
+          className="text-xs h-7 px-2.5 rounded-md border flex items-center gap-1.5"
+          style={{ borderColor: 'var(--color-border)' }}
+        >
           <Plus size={13} /> New custom role
         </button>
       </div>
@@ -206,13 +483,24 @@ export default function TeamRoles() {
             <button
               key={r.id}
               onClick={() => setActiveRoleId(r.id)}
-              className="flex justify-between items-center px-2.5 py-2 rounded-lg text-left text-sm transition-colors"
+              className="flex justify-between items-center px-2.5 py-2 rounded-lg text-left text-sm transition-colors group"
               style={activeRoleId === r.id ? { background: 'var(--color-info-bg)', color: 'var(--color-info-fg)' } : {}}
             >
               <span>{r.name}</span>
-              <span className="text-xs" style={{ color: activeRoleId === r.id ? 'var(--color-info-fg)' : 'var(--color-ink-tertiary)' }}>
-                {memberCountForRole(r.id)}
-              </span>
+              <div className="flex items-center gap-1">
+                <span className="text-xs" style={{ color: activeRoleId === r.id ? 'var(--color-info-fg)' : 'var(--color-ink-tertiary)' }}>
+                  {memberCountForRole(r.id)}
+                </span>
+                {!r.is_locked && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleDeleteRole(r.id); }}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity ml-1"
+                    style={{ color: 'var(--color-danger-fg)' }}
+                  >
+                    <X size={11} />
+                  </button>
+                )}
+              </div>
             </button>
           ))}
         </div>

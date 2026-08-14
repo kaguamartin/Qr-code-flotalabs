@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabaseClient';
 const AuthContext = createContext(undefined);
 
 export function AuthProvider({ children }) {
+  const [membershipLoading, setMembershipLoading] = useState(true);
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [membership, setMembership] = useState(null);
@@ -20,50 +21,39 @@ export function AuthProvider({ children }) {
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      if (session?.user) {
-        fetchProfileAndMembership(session.user.id);
-      } else {
-        setProfile(null);
-        setMembership(null);
-        setLoading(false);
-      }
-    });
+  setSession(session);
+  if (session?.user) {
+    setMembershipLoading(true); // reset before fetch
+    fetchProfileAndMembership(session.user.id);
+  } else {
+    setProfile(null);
+    setMembership(null);
+    setMembershipLoading(false);
+    setLoading(false);
+  }
+});
 
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  async function fetchProfileAndMembership(userId) {
-    // fetch profile
-    const { data: profileData, error: profileError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', userId)
-      .single();
-
-    if (profileError) {
-      console.error('Failed to fetch profile:', profileError.message);
-    } else {
-      setProfile(profileData);
-    }
-
-    // fetch membership — check if user belongs to any active org
-    const { data: membershipData, error: membershipError } = await supabase
+async function fetchProfileAndMembership(userId) {
+  const [profileResult, membershipResult] = await Promise.all([
+    supabase.from('users').select('*').eq('id', userId).single(),
+    supabase
       .from('memberships')
       .select('*, organizations(*), roles(name)')
       .eq('user_id', userId)
       .eq('status', 'active')
       .limit(1)
-      .maybeSingle();
+      .maybeSingle(),
+  ]);
 
-    if (membershipError) {
-      console.error('Failed to fetch membership:', membershipError.message);
-    } else {
-      setMembership(membershipData);
-    }
+  if (!profileResult.error) setProfile(profileResult.data);
+  if (!membershipResult.error) setMembership(membershipResult.data);
 
-    setLoading(false);
-  }
+  setLoading(false);
+  setMembershipLoading(false);
+}
 
   async function signIn(email, password) {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -111,21 +101,21 @@ export function AuthProvider({ children }) {
     }
   }
 
-  const value = {
-    session,
-    user: session?.user ?? null,
-    profile,
-    membership,
-    loading,
-    isSuperAdmin: profile?.is_super_admin ?? false,
-    hasOrg: !!membership,
-    signIn,
-    signOut,
-    signUp,
-    requestPasswordReset,
-    updatePassword,
-    refreshMembership,
-  };
+const value = {
+  session,
+  user: session?.user ?? null,
+  profile,
+  membership,
+  loading: loading || membershipLoading, // treat both as loading
+  isSuperAdmin: profile?.is_super_admin ?? false,
+  hasOrg: !!membership,
+  signIn,
+  signOut,
+  signUp,
+  requestPasswordReset,
+  updatePassword,
+  refreshMembership,
+};
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

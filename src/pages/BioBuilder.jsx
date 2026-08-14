@@ -331,7 +331,18 @@ function NewBioPageModal({ orgId, orgSlug, onCreated, onClose }) {
     setError('');
 
     const slug = name.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, '-').slice(0, 15);
-    const shortCode = orgSlug + '-' + slug + '-' + Date.now().toString().slice(-4);
+    // generate clean short code, check availability
+let shortCode = orgSlug + '-' + slug;
+const { data: existing } = await supabase
+  .from('links')
+  .select('id')
+  .eq('short_code', shortCode)
+  .maybeSingle();
+
+if (existing) {
+  // only add a number if there's a conflict
+  shortCode = orgSlug + '-' + slug + '-' + Math.floor(Math.random() * 900 + 100);
+}
 
     const { data: typeData } = await supabase
       .from('destination_types')
