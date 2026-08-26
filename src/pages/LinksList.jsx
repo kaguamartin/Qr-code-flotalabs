@@ -17,7 +17,7 @@ const typeColorMap = {
 };
 
 export default function LinksList() {
-  const { membership } = useAuth();
+  const { membership, can } = useAuth();
   const orgId = membership?.organizations?.id;
 
   const [links, setLinks] = useState([]);
@@ -90,9 +90,11 @@ export default function LinksList() {
             {links.length} {links.length === 1 ? 'link' : 'links'} in your workspace
           </p>
         </div>
-        <Link to="/app/links/new" className="btn-primary">
-          <Plus size={16} /> New link
-        </Link>
+        {can('links.create') && (
+  <Link to="/app/links/new" className="btn-primary">
+    <Plus size={16} /> New link
+  </Link>
+)}
       </div>
 
       <div className="relative mb-4 max-w-xs">

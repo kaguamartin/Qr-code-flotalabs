@@ -16,11 +16,13 @@ export function StatCard({ label, value, sublabel, trend }) {
 }
 
 const statusStyles = {
-  active: { bg: 'var(--color-success-bg)', fg: 'var(--color-success-fg)', label: 'Active' },
-  attention: { bg: 'var(--color-warning-bg)', fg: 'var(--color-warning-fg)', label: 'Needs attention' },
-  pending: { bg: 'var(--color-warning-bg)', fg: 'var(--color-warning-fg)', label: 'Pending' },
-  connected: { bg: 'var(--color-success-bg)', fg: 'var(--color-success-fg)', label: 'Connected' },
-  disconnected: { bg: 'var(--color-canvas)', fg: 'var(--color-ink-secondary)', label: 'Not connected' },
+  active:       { bg: 'var(--color-success-bg)',  fg: 'var(--color-success-fg)',  label: 'Active' },
+  attention:    { bg: 'var(--color-warning-bg)',  fg: 'var(--color-warning-fg)',  label: 'Needs attention' },
+  pending:      { bg: 'var(--color-warning-bg)',  fg: 'var(--color-warning-fg)',  label: 'Pending' },
+  invited:      { bg: 'var(--color-info-bg)',     fg: 'var(--color-info-fg)',     label: 'Invited' },
+  suspended:    { bg: 'var(--color-danger-bg)',   fg: 'var(--color-danger-fg)',   label: 'Suspended' },
+  connected:    { bg: 'var(--color-success-bg)',  fg: 'var(--color-success-fg)',  label: 'Connected' },
+  disconnected: { bg: 'var(--color-canvas)',      fg: 'var(--color-ink-secondary)', label: 'Not connected' },
 };
 
 export function StatusBadge({ status }) {

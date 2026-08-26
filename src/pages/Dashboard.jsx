@@ -15,7 +15,7 @@ const typeColorMap = {
 };
 
 export default function Dashboard() {
-  const { membership } = useAuth();
+  const { membership, can } = useAuth();
   const org = membership?.organizations;
   const orgId = org?.id;
 
@@ -118,9 +118,11 @@ export default function Dashboard() {
             <option>Last 7 days</option>
             <option>Campaign to date</option>
           </select>
-          <Link to="/app/links/new" className="btn-primary">
-            <Plus size={16} /> New link
-          </Link>
+          {can('links.create') && (
+  <Link to="/app/links/new" className="btn-primary">
+    <Plus size={16} /> New link
+  </Link>
+)}
         </div>
       </div>
 

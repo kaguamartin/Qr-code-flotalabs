@@ -5,14 +5,32 @@ import { supabase } from '../lib/supabaseClient';
 
 export default function Onboarding() {
   const navigate = useNavigate();
-  const { user, loading, hasOrg, isSuperAdmin, refreshMembership } = useAuth();
+  const { user, loading, hasOrg, isSuperAdmin, isInvited, membership, refreshMembership } = useAuth();
   const [orgName, setOrgName] = useState('');
   const [orgSlug, setOrgSlug] = useState('');
   const [industry, setIndustry] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [fullName, setFullName] = useState('');
 
-  useEffect(() => {
+  async function handleCompleteProfile(e) {
+  e.preventDefault();
+  setSubmitting(true);
+  setError('');
+
+  const { error: nameError } = await supabase
+    .from('users')
+    .update({ full_name: fullName.trim() })
+    .eq('id', user.id);
+
+  if (nameError) { setError(nameError.message); setSubmitting(false); return; }
+
+  await refreshMembership();
+  navigate('/app', { replace: true });
+}
+
+
+useEffect(() => {
     if (loading) return;
     if (!user) {
       navigate('/login', { replace: true });
@@ -26,7 +44,9 @@ export default function Onboarding() {
       navigate('/admin', { replace: true });
       return;
     }
-  }, [loading, user, hasOrg, isSuperAdmin, navigate]);
+    // invited users stay on onboarding to complete their profile
+    if (isInvited) return;
+  }, [loading, user, hasOrg, isSuperAdmin, isInvited, navigate]);
 
   function generateSlug(name) {
     return name
@@ -110,6 +130,49 @@ export default function Onboarding() {
     );
   }
 
+
+// invited user — show profile completion form instead of org creation
+if (isInvited) {
+  return (
+    <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--color-canvas)' }}>
+      <div className="card p-8 w-full max-w-sm">
+        <div className="flex items-center gap-2.5 mb-6">
+          <div className="w-8 h-8 rounded-lg shrink-0" style={{ background: 'linear-gradient(135deg, var(--color-brand-purple), var(--color-brand-blue))' }} />
+          <p className="text-sm font-medium">Flota Labs</p>
+        </div>
+        <h1 className="text-lg font-medium mb-1">You've been invited!</h1>
+        <p className="text-sm mb-5" style={{ color: 'var(--color-ink-secondary)' }}>
+          You've been added to <span className="font-medium">{membership?.organizations?.name ?? 'a workspace'}</span>. Enter your name to get started.
+        </p>
+        {error && (
+          <div className="mb-4 text-sm px-3 py-2 rounded-lg" style={{ background: 'var(--color-danger-bg)', color: 'var(--color-danger-fg)' }}>
+            {error}
+          </div>
+        )}
+        <form onSubmit={handleCompleteProfile} className="flex flex-col gap-3.5">
+          <div>
+            <label className="text-xs block mb-1.5" style={{ color: 'var(--color-ink-secondary)' }}>Your full name</label>
+            <input
+              type="text"
+              required
+              className="input-field"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="James Mwangi"
+            />
+          </div>
+          <button type="submit" disabled={submitting} className="btn-primary w-full justify-center mt-1.5 disabled:opacity-60">
+            {submitting ? 'Setting up...' : 'Get started'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// regular org creation form — keep exactly as is
+
+
   return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--color-canvas)' }}>
       <div className="card p-8 w-full max-w-md">
@@ -164,7 +227,7 @@ export default function Onboarding() {
                 className="input-field rounded-l-none flex-1"
                 value={orgSlug}
                 onChange={(e) => setOrgSlug(e.target.value)}
-                placeholder="bidco-africa"
+                placeholder="Bidco-africa"
               />
             </div>
           </div>

@@ -28,6 +28,17 @@ const industries = [
   'Government & Public Sector', 'Other',
 ];
 
+function ReadOnlySection({ title, message }) {
+  return (
+    <div className="card p-5">
+      <p className="text-sm font-medium mb-2">{title}</p>
+      <p className="text-xs px-3 py-2 rounded-lg" style={{ background: 'var(--color-canvas)', color: 'var(--color-ink-secondary)' }}>
+        {message}
+      </p>
+    </div>
+  );
+}
+
 function Toggle({ on, onChange }) {
   return (
     <button
@@ -71,6 +82,7 @@ function GeneralSection({ org, onUpdate }) {
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+  
 
   useEffect(() => {
     setOrgName(org?.name ?? '');
@@ -563,7 +575,7 @@ const NAV_BOTTOM = [
 ];
 
 export default function Settings() {
-  const { profile, membership, signOut } = useAuth();
+  const { profile, membership, signOut, can } = useAuth();
   const [org, setOrg] = useState(membership?.organizations ?? null);
   const [activeSection, setActiveSection] = useState('general');
 
@@ -576,18 +588,21 @@ export default function Settings() {
   }
 
   function renderSection() {
-    switch (activeSection) {
-      case 'general':       return <GeneralSection org={org} onUpdate={handleOrgUpdate} />;
-      case 'branding':      return <BrandingSection org={org} onUpdate={handleOrgUpdate} />;
-      case 'domains':       return <DomainsSection org={org} />;
-      case 'notifications': return <NotificationsSection profile={profile} />;
-      case 'profile':       return <ProfileSection profile={profile} />;
-      case 'security':      return <SecuritySection signOut={signOut} />;
-      case 'billing':       return <BillingSection />;
-      default:              return <GeneralSection org={org} onUpdate={handleOrgUpdate} />;
-    }
+  switch (activeSection) {
+    case 'general':       return can('workspace.edit_branding') 
+                            ? <GeneralSection org={org} onUpdate={handleOrgUpdate} />
+                            : <ReadOnlySection title="General" message="You don't have permission to edit workspace settings." />;
+    case 'branding':      return can('workspace.edit_branding')
+                            ? <BrandingSection org={org} onUpdate={handleOrgUpdate} />
+                            : <ReadOnlySection title="Branding" message="You don't have permission to edit branding." />;
+    case 'domains':       return <DomainsSection org={org} />;
+    case 'notifications': return <NotificationsSection profile={profile} />;
+    case 'profile':       return <ProfileSection profile={profile} />;
+    case 'security':      return <SecuritySection signOut={signOut} />;
+    case 'billing':       return <BillingSection />;
+    default:              return <GeneralSection org={org} onUpdate={handleOrgUpdate} />;
   }
-
+}
   function NavItem({ item }) {
     const Icon = Icons[item.icon] ?? Icons.Circle;
     const active = activeSection === item.key;

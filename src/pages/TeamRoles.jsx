@@ -18,7 +18,7 @@ function RoleBadge({ roleName, index }) {
 }
 
 export default function TeamRoles() {
-  const { membership } = useAuth();
+  const { membership, can } = useAuth();
   const orgId = membership?.organizations?.id;
 
   const [members, setMembers] = useState([]);
@@ -368,6 +368,7 @@ export default function TeamRoles() {
             {members.length} {members.length === 1 ? 'member' : 'members'} &middot; {roles.length} {roles.length === 1 ? 'role' : 'roles'}
           </p>
         </div>
+        {can('team.invite') && (
         <button
           className="btn-primary"
           onClick={() => {
@@ -380,6 +381,7 @@ export default function TeamRoles() {
         >
           <UserPlus size={16} /> Invite member
         </button>
+        )}
       </div>
 
       <div className="card overflow-hidden mb-7">
@@ -468,6 +470,7 @@ export default function TeamRoles() {
 
       <div className="flex items-center justify-between mb-3">
         <p className="text-sm font-medium">Roles</p>
+        {can('team.manage_roles') && (
         <button
           onClick={() => { setNewRoleName(''); setNewRoleError(''); setShowNewRoleModal(true); }}
           className="text-xs h-7 px-2.5 rounded-md border flex items-center gap-1.5"
@@ -475,6 +478,7 @@ export default function TeamRoles() {
         >
           <Plus size={13} /> New custom role
         </button>
+        )}v
       </div>
 
       <div className="grid gap-4" style={{ gridTemplateColumns: '160px 1fr' }}>

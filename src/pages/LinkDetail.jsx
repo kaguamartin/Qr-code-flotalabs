@@ -69,7 +69,7 @@ function formatRelativeTime(isoString) {
 
 export default function LinkDetail() {
   const { id } = useParams();
-  const { membership } = useAuth();
+  const { membership, can } = useAuth();
   const orgId = membership?.organizations?.id;
 
   const [link, setLink] = useState(null);
@@ -215,9 +215,11 @@ export default function LinkDetail() {
             >
               <Download size={13} /> QR
             </button>
-            <button className="btn-secondary flex-1 justify-center text-xs h-8">
-              Edit
-            </button>
+            {can('links.edit') && (
+  <button className="btn-secondary flex-1 justify-center text-xs h-8">
+    Edit
+  </button>
+)}
           </div>
           <div className="w-full text-left border-t mt-3.5 pt-2.5" style={{ borderColor: 'var(--color-border)' }}>
             <p className="text-xs" style={{ color: 'var(--color-ink-tertiary)' }}>Corridor</p>

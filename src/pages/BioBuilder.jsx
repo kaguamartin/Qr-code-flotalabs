@@ -396,7 +396,7 @@ if (existing) {
 }
 
 export default function BioBuilder() {
-  const { membership } = useAuth();
+  const { membership, can } = useAuth();
   const orgId = membership?.organizations?.id;
   const orgSlug = membership?.organizations?.slug ?? '';
 
@@ -689,7 +689,7 @@ export default function BioBuilder() {
                 return (
                   <div
                     key={b.id}
-                    draggable
+                    draggable={can('links.edit')}
                     onDragStart={() => setDragIndex(i)}
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={() => handleDrop(i)}
@@ -708,15 +708,17 @@ export default function BioBuilder() {
                     <span className="text-xs shrink-0" style={{ color: 'var(--color-ink-tertiary)' }}>
                       {b.destination_types?.display_name ?? '—'}
                     </span>
+                    {can('links.edit') && (
                     <button onClick={() => removeBlock(b.id)} className="ml-1">
                       <Icons.Trash2 size={14} style={{ color: 'var(--color-ink-tertiary)' }} />
                     </button>
+                    )}
                   </div>
                 );
               })
             )}
           </div>
-
+           {can('links.edit') && (
           <button
             onClick={() => setShowAddModal(true)}
             className="w-full h-9 rounded-lg border border-dashed text-sm flex items-center justify-center gap-1.5 transition-colors hover:bg-[var(--color-canvas)]"
@@ -724,6 +726,7 @@ export default function BioBuilder() {
           >
             <Icons.Plus size={15} /> Add button
           </button>
+          )}
         </div>
 
         {/* phone preview */}
