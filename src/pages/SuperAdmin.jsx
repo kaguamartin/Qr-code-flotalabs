@@ -1,15 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, MoreHorizontal, X, AlertTriangle } from 'lucide-react';
+import { Plus, Search, MoreHorizontal, X, AlertTriangle, ArrowLeftRight } from 'lucide-react';
 import { StatCard, StatusBadge } from '../components/Shared';
 import { supabase } from '../lib/supabaseClient';
+import { useAuth } from '../contexts/AuthContext';
 
-function OrgActionsModal({ org, onClose, onAction }) {
+function OrgActionsModal({ org, onClose, onAction, onAssist }) {
   const [view, setView] = useState('menu');
   const [confirmText, setConfirmText] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const isSuspended = org.status === 'suspended';
+  
 
   async function handleSuspend() {
     setLoading(true); setError('');
@@ -39,9 +41,18 @@ function OrgActionsModal({ org, onClose, onAction }) {
           <button onClick={onClose} style={{ color: 'var(--color-ink-tertiary)' }}><X size={16} /></button>
         </div>
         {error && <p className="text-xs mb-3 px-3 py-2 rounded-lg" style={{ background: 'var(--color-danger-bg)', color: 'var(--color-danger-fg)' }}>{error}</p>}
-        {view === 'menu' && (
-          <div className="flex flex-col gap-2">
-            <button onClick={() => setView('suspend')} className="w-full text-left px-3 py-2.5 rounded-lg text-sm flex items-center gap-2.5 hover:bg-[var(--color-canvas)]" style={{ color: isSuspended ? 'var(--color-success-fg)' : 'var(--color-warning-fg)' }}>
+         {view === 'menu' && (
+  <div className="flex flex-col gap-2">
+    <button
+  onClick={() => onAssist(org.id)}
+  className="w-full text-left px-3 py-2.5 rounded-lg text-sm flex items-center gap-2.5 hover:bg-[var(--color-canvas)]"
+  style={{ color: 'var(--color-brand-blue)' }}
+>
+  <ArrowLeftRight size={15} />
+  Enter assist mode
+</button>
+    <button
+      onClick={() => setView('suspend')} className="w-full text-left px-3 py-2.5 rounded-lg text-sm flex items-center gap-2.5 hover:bg-[var(--color-canvas)]" style={{ color: isSuspended ? 'var(--color-success-fg)' : 'var(--color-warning-fg)' }}>
               <AlertTriangle size={15} />
               {isSuspended ? 'Reactivate workspace' : 'Suspend workspace'}
             </button>
@@ -50,6 +61,8 @@ function OrgActionsModal({ org, onClose, onAction }) {
             </button>
           </div>
         )}
+      
+      
         {view === 'suspend' && (
           <div>
             <p className="text-xs mb-4" style={{ color: 'var(--color-ink-secondary)' }}>
@@ -108,7 +121,7 @@ function InviteModal({ onClose }) {
 }
 
 export default function SuperAdmin() {
-  const navigate = useNavigate();
+  
   const [organizations, setOrganizations] = useState([]);
   const [filtered, setFiltered] = useState([]);
   const [search, setSearch] = useState('');
@@ -116,6 +129,8 @@ export default function SuperAdmin() {
   const [error, setError] = useState('');
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [activeOrg, setActiveOrg] = useState(null);
+  const { startAssistMode } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => { loadOrgs(); }, []);
 
@@ -161,7 +176,17 @@ export default function SuperAdmin() {
   return (
     <div className="max-w-6xl mx-auto px-8 py-7">
       {showInviteModal && <InviteModal onClose={() => setShowInviteModal(false)} />}
-      {activeOrg && <OrgActionsModal org={activeOrg} onClose={() => setActiveOrg(null)} onAction={loadOrgs} />}
+     {activeOrg && (
+  <OrgActionsModal
+    org={activeOrg}
+    onClose={() => setActiveOrg(null)}
+    onAction={loadOrgs}
+    onAssist={async (orgId) => {
+      const ok = await startAssistMode(orgId);
+      if (ok) navigate('/app');
+    }}
+  />
+)}
 
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2.5">

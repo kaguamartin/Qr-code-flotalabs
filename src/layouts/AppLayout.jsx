@@ -1,18 +1,19 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, Link2, ListTree, Users, Plug, Settings, ArrowLeftRight,
+  LayoutDashboard, Link2, ListTree, Users, Plug, Settings, ArrowLeftRight, X,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function AppLayout() {
   const navigate = useNavigate();
-  const { profile, membership, isSuperAdmin, can } = useAuth();
+  const { profile, membership, isSuperAdmin, can, isAssistMode, assistOrg, endAssistMode } = useAuth();
 
   const org = membership?.organizations;
   const orgName = org?.name ?? 'Workspace';
   const userInitial = profile?.full_name?.charAt(0)?.toUpperCase() ?? '?';
   const userName = profile?.full_name ?? profile?.email ?? '—';
   const roleName = membership?.roles?.name ?? 'Member';
+
 
   // build nav items based on permissions
   const navItems = [
@@ -24,8 +25,25 @@ export default function AppLayout() {
     { to: '/app/settings', label: 'Settings', icon: Settings, show: true },
   ].filter((item) => item.show);
 
-  return (
-    <div className="flex min-h-screen">
+return (
+  <div className="flex min-h-screen flex-col">
+    {/* assist mode banner */}
+    {isAssistMode && (
+      <div className="flex items-center justify-between px-6 py-2 text-sm font-medium" style={{ background: '#f59e0b', color: 'white' }}>
+        <div className="flex items-center gap-2">
+          <ArrowLeftRight size={15} />
+          Assist mode — editing <strong className="ml-1">{assistOrg?.name}</strong> on behalf of Flota Labs
+        </div>
+        <button
+          onClick={async () => { await endAssistMode(); window.location.href = '/admin'; }}
+          className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium"
+          style={{ background: 'rgba(0,0,0,0.2)' }}
+        >
+          <X size={13} /> Exit assist mode
+        </button>
+      </div>
+    )}
+    <div className="flex flex-1 min-h-0">
       <aside className="w-60 shrink-0 border-r bg-white flex flex-col" style={{ borderColor: 'var(--color-border)' }}>
         {/* org header */}
         <div className="h-16 flex items-center gap-2.5 px-5 border-b" style={{ borderColor: 'var(--color-border)' }}>
@@ -114,6 +132,7 @@ export default function AppLayout() {
           <Outlet />
         </div>
       </main>
+    </div>
     </div>
   );
 }
