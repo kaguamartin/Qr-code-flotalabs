@@ -43,7 +43,7 @@ function getQrValue(link) {
   if (!link) return '';
   const mode = link.destination_types?.encoding_mode;
   const data = link.destination_data ?? {};
-  if (mode === 'redirect') return `https://flota.ke/${link.short_code}`;
+  if (mode === 'redirect') return `https://flotalabs.co.ke/${link.short_code}`;
   switch (link.destination_types?.key) {
     case 'wifi': return `WIFI:T:WPA;S:${data.ssid ?? ''};P:${data.password ?? ''};;`;
     case 'call':
@@ -52,7 +52,7 @@ function getQrValue(link) {
     case 'email': return `mailto:${data.to ?? ''}`;
     case 'map': return `geo:0,0?q=${encodeURIComponent(data.address ?? '')}`;
     case 'vcard': return `BEGIN:VCARD\nVERSION:3.0\nFN:${data.name ?? ''}\nTEL:${data.phone ?? ''}\nORG:${data.company ?? ''}\nEND:VCARD`;
-    default: return `https://flota.ke/${link.short_code}`;
+    default: return `https://flotalabs.co.ke/${link.short_code}`;
   }
 }
 
@@ -185,7 +185,7 @@ export default function LinkDetail() {
       <div className="flex items-center gap-1.5 mb-5 text-xs">
         <Link to="/app/links" style={{ color: 'var(--color-ink-secondary)' }}>Links</Link>
         <ChevronRight size={12} style={{ color: 'var(--color-ink-tertiary)' }} />
-        <span className="font-mono">flota.ke/{link.short_code}</span>
+        <span className="font-mono">flotalabs.co.ke/{link.short_code}</span>
       </div>
 
       <div className="grid gap-5 mb-5" style={{ gridTemplateColumns: '0.85fr 1fr' }}>
@@ -193,7 +193,7 @@ export default function LinkDetail() {
           <div className="w-36 h-36 flex items-center justify-center mb-3.5">
             <QRCodeSVG
   id="link-detail-qr"
-  value={qrValue || 'https://flota.ke'}
+  value={qrValue || 'https://flotalabs.co.ke'}
   size={144}
   level="M"
   imageSettings={link?.org?.logo_url ? {
@@ -204,7 +204,7 @@ export default function LinkDetail() {
   } : undefined}
 />
           </div>
-          <p className="font-mono text-sm mb-1.5">flota.ke/{link.short_code}</p>
+          <p className="font-mono text-sm mb-1.5">flotalabs.co.ke/{link.short_code}</p>
           <TypeChip color={typeColorMap[typeKey] ?? 'blue'}>
             {link.destination_types?.display_name ?? '—'}
           </TypeChip>

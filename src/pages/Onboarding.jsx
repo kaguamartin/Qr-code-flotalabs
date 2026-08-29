@@ -219,7 +219,7 @@ if (isInvited) {
                 className="font-mono text-sm px-3 py-2 rounded-l-lg border border-r-0"
                 style={{ borderColor: 'var(--color-border)', background: 'var(--color-canvas)', color: 'var(--color-ink-secondary)' }}
               >
-                flota.ke/
+                flotalabs.co.ke/
               </span>
               <input
                 type="text"

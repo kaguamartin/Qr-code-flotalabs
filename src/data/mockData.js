@@ -90,12 +90,12 @@ export const organizations = [
 ];
 
 export const links = [
-  { id: 'link-1', orgId: 'org-bidco', name: 'flota.ke/bidco-data', type: 'website', typeLabel: 'Website', corridor: 'Thika Road', campaign: 'Bidco — Awareness Q3', scans: 5210, conv: 11.4 },
-  { id: 'link-2', orgId: 'org-bidco', name: 'flota.ke/bidco-app', type: 'app', typeLabel: 'Play Store', corridor: 'Mombasa Road', campaign: 'Bidco — Awareness Q3', scans: 4330, conv: 6.8 },
-  { id: 'link-3', orgId: 'org-bidco', name: 'flota.ke/bidco-win', type: 'rsvp', typeLabel: 'Signup form', corridor: 'Waiyaki Way', campaign: 'Bidco — Win promo', scans: 3140, conv: 14.2 },
-  { id: 'link-4', orgId: 'org-bidco', name: 'flota.ke/bidco-promo', type: 'website', typeLabel: 'Website', corridor: 'Thika Road', campaign: 'Bidco — Awareness Q3', scans: 1640, conv: 8.1 },
-  { id: 'link-5', orgId: 'org-bidco', name: 'flota.ke/bidco-app2', type: 'app', typeLabel: 'Play Store', corridor: 'Mombasa Road', campaign: 'Bidco — Awareness Q3', scans: 410, conv: 5.3 },
-  { id: 'link-6', orgId: 'org-bidco', name: 'flota.ke/bidco-launch', type: 'rsvp', typeLabel: 'Signup form', corridor: 'Waiyaki Way', campaign: 'Bidco — Win promo', scans: 90, conv: 2.1 },
+  { id: 'link-1', orgId: 'org-bidco', name: 'flotalabs.co.ke/bidco-data', type: 'website', typeLabel: 'Website', corridor: 'Thika Road', campaign: 'Bidco — Awareness Q3', scans: 5210, conv: 11.4 },
+  { id: 'link-2', orgId: 'org-bidco', name: 'flotalabs.co.ke/bidco-app', type: 'app', typeLabel: 'Play Store', corridor: 'Mombasa Road', campaign: 'Bidco — Awareness Q3', scans: 4330, conv: 6.8 },
+  { id: 'link-3', orgId: 'org-bidco', name: 'flotalabs.co.ke/bidco-win', type: 'rsvp', typeLabel: 'Signup form', corridor: 'Waiyaki Way', campaign: 'Bidco — Win promo', scans: 3140, conv: 14.2 },
+  { id: 'link-4', orgId: 'org-bidco', name: 'flotalabs.co.ke/bidco-promo', type: 'website', typeLabel: 'Website', corridor: 'Thika Road', campaign: 'Bidco — Awareness Q3', scans: 1640, conv: 8.1 },
+  { id: 'link-5', orgId: 'org-bidco', name: 'flotalabs.co.ke/bidco-app2', type: 'app', typeLabel: 'Play Store', corridor: 'Mombasa Road', campaign: 'Bidco — Awareness Q3', scans: 410, conv: 5.3 },
+  { id: 'link-6', orgId: 'org-bidco', name: 'flotalabs.co.ke/bidco-launch', type: 'rsvp', typeLabel: 'Signup form', corridor: 'Waiyaki Way', campaign: 'Bidco — Win promo', scans: 90, conv: 2.1 },
 ];
 
 export const roles = [

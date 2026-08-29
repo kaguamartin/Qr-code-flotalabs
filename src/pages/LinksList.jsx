@@ -130,7 +130,7 @@ export default function LinksList() {
                 <tr key={l.id} className="border-b last:border-0 hover:bg-[var(--color-canvas)]" style={{ borderColor: 'var(--color-border)' }}>
                   <td className="px-5 py-3 font-mono text-xs">
                     <Link to={`/app/links/${l.id}`} className="hover:underline">
-                      flota.ke/{l.short_code}
+                      flotalabs.co.ke/{l.short_code}
                     </Link>
                   </td>
                   <td className="py-3">

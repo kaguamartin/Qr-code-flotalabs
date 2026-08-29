@@ -19,7 +19,7 @@ The core tenant. One row per client workspace (e.g. "Bidco Africa"), plus one sp
 | logo_url | text | nullable |
 | primary_color | text | hex, e.g. "#9d16f1" |
 | qr_style | text | enum: classic / rounded / branded |
-| default_domain | text | default "flota.ke", supports custom domains later |
+| default_domain | text | default "flotalabs.co.ke", supports custom domains later |
 | is_platform_org | boolean | true only for the Flota Labs internal org |
 | status | text | enum: active / attention / suspended — drives super-admin health flag |
 | created_at | timestamptz | |

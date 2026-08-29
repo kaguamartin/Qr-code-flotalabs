@@ -83,7 +83,7 @@ export default function QRCustomizer({
         {activeType?.encoding_mode === 'redirect' && (
           <p className="text-xs mb-2" style={{ color: 'var(--color-ink-secondary)' }}>
             Short link:{' '}
-            <span className="font-mono">flota.ke/{orgSlug}-{shortCodeSuffix}</span>
+            <span className="font-mono">flotalabs.co.ke/{orgSlug}-{shortCodeSuffix}</span>
           </p>
         )}
         {activeType && !activeType.supports_funnel && (

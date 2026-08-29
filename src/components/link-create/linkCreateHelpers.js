@@ -33,7 +33,7 @@ export function groupColor(label) {
 export function getRawQrValue({ activeType, fieldValues, orgSlug, shortCodeSuffix }) {
   if (!activeType) return '';
   if (activeType.encoding_mode === 'redirect') {
-    return `https://flota.ke/${orgSlug}-${shortCodeSuffix}`;
+    return `https://flotalabs.co.ke/${orgSlug}-${shortCodeSuffix}`;
   }
   switch (activeType.key) {
     case 'wifi':
@@ -52,7 +52,7 @@ export function getRawQrValue({ activeType, fieldValues, orgSlug, shortCodeSuffi
     case 'calendar':
       return `BEGIN:VEVENT\nSUMMARY:${fieldValues.event_title ?? ''}\nDTSTART:${(fieldValues.event_date ?? '').replace(/[-:]/g, '').slice(0, 15)}\nEND:VEVENT`;
     default:
-      return `https://flota.ke/${orgSlug}-${shortCodeSuffix}`;
+      return `https://flotalabs.co.ke/${orgSlug}-${shortCodeSuffix}`;
   }
 }
 
