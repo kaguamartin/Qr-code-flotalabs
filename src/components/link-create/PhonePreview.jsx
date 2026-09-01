@@ -1,6 +1,7 @@
 import * as Icons from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { groupIcon } from './linkCreateHelpers';
+import { SHORT_LINK_BASE_URL } from '../../config';
 
 export default function PhonePreview({
   step,
@@ -13,7 +14,7 @@ export default function PhonePreview({
   qrValue,
   onDownload,
 }) {
-  const shortUrl = `flotalabs.co.ke/${orgSlug ? orgSlug + '-' : ''}${shortCode || '...'}`;
+  const shortUrl = `${SHORT_LINK_BASE_URL.replace('https://', '')}/${orgSlug ? orgSlug + '-' : ''}${shortCode || '...'}`;
 
   function renderContent() {
     if (!activeType) {
@@ -45,7 +46,7 @@ export default function PhonePreview({
             level="M"
           />
           <p className="font-mono text-[10px] text-center" style={{ color: 'var(--color-ink-secondary)' }}>
-            {activeType?.encoding_mode === 'redirect' ? `flotalabs.co.ke/${orgSlug}-${shortCode}` : activeType?.display_name}
+            {activeType?.encoding_mode === 'redirect' ? `${SHORT_LINK_BASE_URL.replace('https://', '')}/${orgSlug}-${shortCode}` : activeType?.display_name}
           </p>
           <button
             onClick={onDownload}

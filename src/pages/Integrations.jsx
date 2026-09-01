@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import * as Icons from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
+import { SHORT_LINK_BASE_URL } from '../config';
 
 const INTEGRATION_META = {
   tracking_pixel: {
@@ -76,7 +77,7 @@ function SetupModal({ provider, integration, onClose, onSave }) {
   (function(f,l,o,t,a){
     f.FloatPixel=t;f[t]=f[t]||function(){(f[t].q=f[t].q||[]).push(arguments)};
     a=l.createElement('script');a.async=1;a.src=o;l.head.appendChild(a);
-  })(window,document,'https://flotalabs.co.ke/pixel.js','flota');
+  })(window,document,'${SHORT_LINK_BASE_URL}/pixel.js','flota');
 </script>`;
 
   async function handleSave() {

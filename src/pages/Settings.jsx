@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import * as Icons from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
+import { SHORT_LINK_BASE_URL } from '../config';
 
 const industries = [
   // Consumer & Retail
@@ -119,7 +120,7 @@ function GeneralSection({ org, onUpdate }) {
       <div>
         <label className="text-xs block mb-1.5" style={{ color: 'var(--color-ink-secondary)' }}>Default link domain</label>
         <select className="input-field max-w-60">
-          <option>flotalabs.co.ke</option>
+          <option>{SHORT_LINK_BASE_URL.replace('https://', '')}</option>
           <option>Custom domain (Pro)</option>
         </select>
       </div>
@@ -520,14 +521,14 @@ function DomainsSection({ org }) {
     <div className="card p-5">
       <p className="text-sm font-medium mb-1">Custom domains</p>
       <p className="text-xs mb-4" style={{ color: 'var(--color-ink-secondary)' }}>
-        Use your own domain for short links instead of flotalabs.co.ke.
+        Use your own domain for short links instead of {SHORT_LINK_BASE_URL.replace('https://', '')}.
       </p>
       <div className="rounded-xl border border-dashed p-4 flex items-center justify-between" style={{ borderColor: 'var(--color-border-strong)' }}>
         <div className="flex items-center gap-2.5">
           <Icons.Globe size={18} style={{ color: 'var(--color-ink-tertiary)' }} />
           <div>
             <p className="text-sm font-medium">Custom domain</p>
-            <p className="text-xs" style={{ color: 'var(--color-ink-tertiary)' }}>Currently using flotalabs.co.ke</p>
+            <p className="text-xs" style={{ color: 'var(--color-ink-tertiary)' }}>Currently using {SHORT_LINK_BASE_URL.replace('https://', '')}</p>
           </div>
         </div>
         <span className="text-xs font-medium px-2.5 py-1 rounded-md" style={{ background: 'var(--color-warning-bg)', color: 'var(--color-warning-fg)' }}>Pro</span>

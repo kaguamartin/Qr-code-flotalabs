@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
+import { SHORT_LINK_BASE_URL } from '../config';
 
 export default function Onboarding() {
   const navigate = useNavigate();
@@ -219,7 +220,7 @@ if (isInvited) {
                 className="font-mono text-sm px-3 py-2 rounded-l-lg border border-r-0"
                 style={{ borderColor: 'var(--color-border)', background: 'var(--color-canvas)', color: 'var(--color-ink-secondary)' }}
               >
-                flotalabs.co.ke/
+                {SHORT_LINK_BASE_URL.replace('https://', '')}/
               </span>
               <input
                 type="text"

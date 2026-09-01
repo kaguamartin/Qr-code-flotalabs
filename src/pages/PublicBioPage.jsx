@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import * as Icons from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
+import { SHORT_LINK_BASE_URL } from '../config';
 
 const DOMAIN_MAP = {
   facebook: 'facebook.com', instagram: 'instagram.com', tiktok: 'tiktok.com',
