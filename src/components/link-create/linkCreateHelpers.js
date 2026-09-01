@@ -1,3 +1,5 @@
+import { SHORT_LINK_BASE_URL } from '../../config';
+
 export function groupIcon(label) {
   const l = (label ?? '').toLowerCase();
   if (l.includes('web')) return 'Globe';
@@ -33,7 +35,7 @@ export function groupColor(label) {
 export function getRawQrValue({ activeType, fieldValues, orgSlug, shortCodeSuffix }) {
   if (!activeType) return '';
   if (activeType.encoding_mode === 'redirect') {
-    return `https://flotalabs.co.ke/${orgSlug}-${shortCodeSuffix}`;
+    return `${SHORT_LINK_BASE_URL}/${orgSlug}-${shortCodeSuffix}`;
   }
   switch (activeType.key) {
     case 'wifi':
@@ -52,7 +54,7 @@ export function getRawQrValue({ activeType, fieldValues, orgSlug, shortCodeSuffi
     case 'calendar':
       return `BEGIN:VEVENT\nSUMMARY:${fieldValues.event_title ?? ''}\nDTSTART:${(fieldValues.event_date ?? '').replace(/[-:]/g, '').slice(0, 15)}\nEND:VEVENT`;
     default:
-      return `https://flotalabs.co.ke/${orgSlug}-${shortCodeSuffix}`;
+      return `${SHORT_LINK_BASE_URL}/${orgSlug}-${shortCodeSuffix}`;
   }
 }
 

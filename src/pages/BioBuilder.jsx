@@ -3,6 +3,7 @@ import * as Icons from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
+import { SHORT_LINK_BASE_URL } from '../config';
 
 const QUICK_TYPES = [
   { key: 'website',  label: 'Website / URL', icon: 'Globe',         color: 'blue',  fields: [{ key: 'url',   label: 'URL',           type: 'url',   placeholder: 'https://...' }] },
@@ -91,7 +92,7 @@ function QRModal({ shortCode, onClose }) {
           <p className="text-sm font-medium">QR Code</p>
           <button onClick={onClose} style={{ color: 'var(--color-ink-tertiary)' }}><Icons.X size={16} /></button>
         </div>
-        <QRCodeSVG id="bio-qr-svg" value={`https://flotalabs.co.ke/p/${shortCode}`} size={180} level="M" />
+        <QRCodeSVG id="bio-qr-svg" value={`${SHORT_LINK_BASE_URL}/p/${shortCode}`} size={180} level="M" />
         <p className="font-mono text-xs text-center" style={{ color: 'var(--color-ink-secondary)' }}>
           flotalabs.co.ke/p/{shortCode}
         </p>
