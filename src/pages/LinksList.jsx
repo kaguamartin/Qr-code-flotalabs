@@ -4,6 +4,7 @@ import { Plus, QrCode, Search } from 'lucide-react';
 import { TypeChip } from '../components/Shared';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
+import { SHORT_LINK_BASE_URL } from '../config';
 
 const typeColorMap = {
   website: 'blue', catalog: 'blue', video: 'blue', pdf: 'blue',
@@ -130,7 +131,7 @@ export default function LinksList() {
                 <tr key={l.id} className="border-b last:border-0 hover:bg-[var(--color-canvas)]" style={{ borderColor: 'var(--color-border)' }}>
                   <td className="px-5 py-3 font-mono text-xs">
                     <Link to={`/app/links/${l.id}`} className="hover:underline">
-                      flotalabs.co.ke/{l.short_code}
+                      {SHORT_LINK_BASE_URL.replace('https://', '')}/{l.short_code}
                     </Link>
                   </td>
                   <td className="py-3">

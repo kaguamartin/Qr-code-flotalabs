@@ -5,6 +5,7 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 import { StatCard, TypeChip } from '../components/Shared';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
+import { SHORT_LINK_BASE_URL } from '../config';
 
 const typeColorMap = {
   website: 'blue', catalog: 'blue', video: 'blue', pdf: 'blue',
@@ -219,7 +220,7 @@ export default function Dashboard() {
                 <tr key={l.id} className="border-t hover:bg-[var(--color-canvas)] cursor-pointer" style={{ borderColor: 'var(--color-border)' }}>
                   <td className="px-5 py-2.5 font-mono text-xs">
                     <Link to={`/app/links/${l.id}`} className="hover:underline">
-                      flotalabs.co.ke/{l.short_code}
+                      {SHORT_LINK_BASE_URL.replace('https://', '')}/{l.short_code}
                     </Link>
                   </td>
                   <td className="py-2.5">

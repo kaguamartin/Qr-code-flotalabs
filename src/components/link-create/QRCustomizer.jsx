@@ -1,4 +1,5 @@
 import { noFunnelNote } from './linkCreateHelpers';
+import { SHORT_LINK_BASE_URL } from '../../config';
 
 const presets = [
   { fg: '#1a1a1a', bg: '#ffffff', label: 'Classic' },
@@ -83,7 +84,7 @@ export default function QRCustomizer({
         {activeType?.encoding_mode === 'redirect' && (
           <p className="text-xs mb-2" style={{ color: 'var(--color-ink-secondary)' }}>
             Short link:{' '}
-            <span className="font-mono">flotalabs.co.ke/{orgSlug}-{shortCodeSuffix}</span>
+            <span className="font-mono">{SHORT_LINK_BASE_URL.replace('https://', '')}/{orgSlug}-{shortCodeSuffix}</span>
           </p>
         )}
         {activeType && !activeType.supports_funnel && (

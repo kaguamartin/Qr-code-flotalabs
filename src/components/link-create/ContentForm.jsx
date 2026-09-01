@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import * as Icons from 'lucide-react';
 import { groupIcon, groupColor, noFunnelNote, corridors } from './linkCreateHelpers';
+import { SHORT_LINK_BASE_URL } from '../../config';
 
 export default function ContentForm({
   activeType,
@@ -191,7 +192,7 @@ export default function ContentForm({
           <label className="text-xs block mb-1.5 font-medium" style={{ color: 'var(--color-ink-secondary)' }}>Short link</label>
           <div className="flex items-center">
             <span className="font-mono text-sm px-3 py-2 rounded-l-lg border border-r-0 shrink-0" style={{ borderColor: 'var(--color-border)', background: 'var(--color-canvas)', color: 'var(--color-ink-secondary)' }}>
-              flotalabs.co.ke/{orgSlug}-
+              {SHORT_LINK_BASE_URL.replace('https://', '')}/{orgSlug}-
             </span>
             <div className="relative flex-1">
               <input

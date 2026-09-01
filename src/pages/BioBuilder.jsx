@@ -94,7 +94,7 @@ function QRModal({ shortCode, onClose }) {
         </div>
         <QRCodeSVG id="bio-qr-svg" value={`${SHORT_LINK_BASE_URL}/p/${shortCode}`} size={180} level="M" />
         <p className="font-mono text-xs text-center" style={{ color: 'var(--color-ink-secondary)' }}>
-          flotalabs.co.ke/p/{shortCode}
+          {SHORT_LINK_BASE_URL.replace('https://', '')}/p/{shortCode}
         </p>
         <div className="flex gap-2 w-full">
           <button onClick={onClose} className="btn-secondary flex-1 justify-center text-xs">Close</button>
@@ -382,7 +382,7 @@ if (existing) {
           <label className="text-xs block mb-1.5" style={{ color: 'var(--color-ink-secondary)' }}>Page name</label>
           <input className="input-field" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Bidco Africa" />
           <p className="text-[11px] mt-1" style={{ color: 'var(--color-ink-tertiary)' }}>
-            Short link: flotalabs.co.ke/p/{orgSlug}-{name ? name.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, '-').slice(0, 15) : '...'}
+            Short link: {SHORT_LINK_BASE_URL.replace('https://', '')}/p/{orgSlug}-{name ? name.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, '-').slice(0, 15) : '...'}
           </p>
         </div>
         <div className="flex gap-2">
@@ -607,12 +607,12 @@ export default function BioBuilder() {
                 onChange={(e) => setSelectedLinkId(e.target.value)}
               >
                 {bioLinks.map((l) => (
-                  <option key={l.id} value={l.id}>flotalabs.co.ke/p/{l.short_code}</option>
+                  <option key={l.id} value={l.id}>{SHORT_LINK_BASE_URL.replace('https://', '')}/p/{l.short_code}</option>
                 ))}
               </select>
             ) : (
               <p className="text-sm font-mono" style={{ color: 'var(--color-ink-secondary)' }}>
-                flotalabs.co.ke/p/{selectedLink?.short_code}
+                {SHORT_LINK_BASE_URL.replace('https://', '')}/p/{selectedLink?.short_code}
               </p>
             )}
             <button
