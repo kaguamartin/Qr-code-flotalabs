@@ -7,7 +7,6 @@ import { TypeChip } from '../components/Shared';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 import { SHORT_LINK_BASE_URL } from '../config';
-import { SHORT_LINK_BASE_URL } from '../config';
 
 const typeColorMap = {
   website: 'blue', catalog: 'blue', video: 'blue', pdf: 'blue',
