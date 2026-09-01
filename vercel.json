@@ -16,7 +16,7 @@
       "destination": "/index.html"
     },
     {
-      "source": "/p/:shortCode",
+      "source": "/p/:path*",
       "destination": "/index.html"
     }
   ]
