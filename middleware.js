@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { next, redirect } from '@vercel/edge';
 
 // Enable at the edge by default.
 const FEATURE_ENABLED = process.env.SHORT_LINK_REDIRECT_ENABLED !== 'false';
@@ -45,7 +45,7 @@ export default async function middleware(request) {
 
   // Let all app routes and static assets through untouched.
   if (FEATURE_ENABLED === false || isAppPath(pathname) || isAssetPath(pathname) || pathname === '/') {
-    return NextResponse.next();
+    return next();
   }
 
   // A bare root-level path like /fl-instagramf or /bidco-win is a short code.
@@ -68,11 +68,12 @@ export default async function middleware(request) {
 
     if (upstream.status >= 300 && upstream.status < 400 && upstream.headers.get('location')) {
       // Preserve the edge function's redirect (tracking already logged upstream).
-      return NextResponse.redirect(upstream.headers.get('location'), upstream.status);
+      return redirect(upstream.headers.get('location'), upstream.status);
     }
 
     // Pass through any other status (404 for unknown link, 400, 500, ...).
-    return new NextResponse(await upstream.text(), {
+    // Response is a standard Web API - no framework package needed for this part.
+    return new Response(await upstream.text(), {
       status: upstream.status,
       headers: {
         'content-type': upstream.headers.get('content-type') ?? 'text/plain',
@@ -81,7 +82,7 @@ export default async function middleware(request) {
   } catch (err) {
     // If the upstream cannot be reached, fail gracefully rather than hard-error.
     console.error('Short-link proxy error:', err);
-    return new NextResponse('Short link could not be resolved.', { status: 502 });
+    return new Response('Short link could not be resolved.', { status: 502 });
   }
 }
 
