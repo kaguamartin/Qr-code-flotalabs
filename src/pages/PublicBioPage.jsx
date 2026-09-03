@@ -104,14 +104,13 @@ export default function PublicBioPage() {
 
 setBlocks(blockData ?? []);
 
-    // fetch org logo
+    // fetch org logo via RPC — anon visitors have no direct SELECT policy on
+    // organizations (deliberately, to avoid exposing the whole row publicly),
+    // so this goes through a security definer function that only returns logo_url
     if (link.org_id) {
-      const { data: orgData } = await supabase
-        .from('organizations')
-        .select('logo_url')
-        .eq('id', link.org_id)
-        .single();
-      if (orgData?.logo_url) setOrgLogoUrl(orgData.logo_url);
+      const { data: logoUrl } = await supabase
+        .rpc('get_public_org_logo', { p_org_id: link.org_id });
+      if (logoUrl) setOrgLogoUrl(logoUrl);
     }
 
     setLoading(false);
