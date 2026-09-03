@@ -1,4 +1,4 @@
-import { next } from '@vercel/edge';
+import { next, geolocation } from '@vercel/edge';
 
 // Enable at the edge by default.
 const FEATURE_ENABLED = process.env.SHORT_LINK_REDIRECT_ENABLED !== 'false';
@@ -55,6 +55,12 @@ export default async function middleware(request) {
 
   const target = `${SUPABASE_FUNCTIONS_URL}/redirect/${encodeURIComponent(shortCode)}`;
 
+  // Vercel's edge network attaches geolocation to every request automatically
+  // (derived from the visitor's IP) - geolocation() just reads it off the
+  // x-vercel-ip-* headers already present. It's not present on the Supabase
+  // side of this proxy hop unless we forward it ourselves below.
+  const geo = geolocation(request);
+
   try {
     const upstream = await fetch(target, {
       method: 'GET',
@@ -63,6 +69,11 @@ export default async function middleware(request) {
         'user-agent': request.headers.get('user-agent') ?? '',
         'x-forwarded-for': request.headers.get('x-forwarded-for') ?? '',
         'x-real-ip': request.headers.get('x-real-ip') ?? '',
+        // Custom headers carrying geo data through to the redirect function.
+        // encodeURIComponent guards against non-ASCII city names (accents etc),
+        // since raw header values must stay ASCII-safe.
+        'x-scan-city': geo.city ? encodeURIComponent(geo.city) : '',
+        'x-scan-country': geo.country ?? '',
       },
     });
 

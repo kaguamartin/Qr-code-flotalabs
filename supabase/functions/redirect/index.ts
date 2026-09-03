@@ -49,6 +49,12 @@ Deno.serve(async (req) => {
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? '';
     const referrer = req.headers.get('referer') ?? null;
 
+    // geo data forwarded by middleware.js (read from Vercel's edge geolocation,
+    // which only exists on the Vercel hop - not visible here otherwise)
+    const rawCity = req.headers.get('x-scan-city') ?? '';
+    const city = rawCity ? decodeURIComponent(rawCity) : null;
+    const country = req.headers.get('x-scan-country') || null;
+
     const deviceType = userAgent.includes('Mobile') ? 'mobile'
       : userAgent.includes('Tablet') ? 'tablet'
       : 'desktop';
@@ -63,6 +69,8 @@ Deno.serve(async (req) => {
     supabase.from('clicks').insert({
       link_id: link.id,
       ip_hash: ip ? btoa(ip).slice(0, 32) : null,
+      city,
+      country,
       device_type: deviceType,
       os,
       referrer,
