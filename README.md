@@ -2,7 +2,7 @@
 
 A multi-tenant SaaS app for QR code generation, link shortening, and
 analytics, built for the Kenyan market. Businesses (Flota Labs' clients)
-create trackable QR codes and short links, view scan/conversion analytics
+reate trackable QR codes and short links, view scan/conversion analytics
 per workspace, and manage their own teams with granular permissions.
 Flota Labs operates as super admin across every client workspace.
 
