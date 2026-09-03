@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ChevronRight, Download, Smartphone, Apple, Loader } from 'lucide-react';
+import { ChevronRight, Download, Smartphone, Apple, Bot, Monitor, Loader } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, CartesianGrid, Tooltip } from 'recharts';
 import { QRCodeSVG } from 'qrcode.react';
 import { TypeChip } from '../components/Shared';
@@ -181,6 +181,18 @@ export default function LinkDetail() {
 
   const recentScans = clicks.slice(0, 6);
 
+  // lucide-react has no brand icons (Android/Windows logos etc.) — these are
+  // the closest generic equivalents. Extend this if more os values appear.
+  const osIconMap = {
+    iOS: Apple,
+    Android: Bot,
+    Windows: Monitor,
+    macOS: Monitor,
+  };
+  function getOsIcon(os) {
+    return osIconMap[os] ?? Smartphone;
+  }
+
   return (
     <div>
       <div className="flex items-center gap-1.5 mb-5 text-xs">
@@ -331,20 +343,20 @@ export default function LinkDetail() {
               <p className="text-xs" style={{ color: 'var(--color-ink-tertiary)' }}>No scans yet.</p>
             ) : (
               <div className="flex flex-col gap-2 max-h-36 overflow-y-auto">
-                {recentScans.map((s, i) => (
-                  <div key={i} className="flex justify-between items-center text-xs">
-                    <div className="flex items-center gap-1.5">
-                      {s.os === 'iOS'
-                        ? <Apple size={13} style={{ color: 'var(--color-ink-secondary)' }} />
-                        : <Smartphone size={13} style={{ color: 'var(--color-ink-secondary)' }} />
-                      }
-                      <span>{s.city ?? 'Unknown'}</span>
+                {recentScans.map((s, i) => {
+                  const OsIcon = getOsIcon(s.os);
+                  return (
+                    <div key={i} className="flex justify-between items-center text-xs">
+                      <div className="flex items-center gap-1.5">
+                        <OsIcon size={13} style={{ color: 'var(--color-ink-secondary)' }} />
+                        <span>{s.os ?? 'Unknown'} · {s.city ?? 'Unknown'}</span>
+                      </div>
+                      <span style={{ color: 'var(--color-ink-tertiary)' }}>
+                        {formatRelativeTime(s.occurred_at)}
+                      </span>
                     </div>
-                    <span style={{ color: 'var(--color-ink-tertiary)' }}>
-                      {formatRelativeTime(s.occurred_at)}
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
