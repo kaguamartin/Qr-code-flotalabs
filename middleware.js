@@ -1,4 +1,4 @@
-import { next, redirect } from '@vercel/edge';
+import { next } from '@vercel/edge';
 
 // Enable at the edge by default.
 const FEATURE_ENABLED = process.env.SHORT_LINK_REDIRECT_ENABLED !== 'false';
@@ -68,7 +68,14 @@ export default async function middleware(request) {
 
     if (upstream.status >= 300 && upstream.status < 400 && upstream.headers.get('location')) {
       // Preserve the edge function's redirect (tracking already logged upstream).
-      return redirect(upstream.headers.get('location'), upstream.status);
+      // Built manually rather than via Response.redirect(), because that helper
+      // throws for any status outside 301/302/303/307/308 - constructing the
+      // Response directly works for any 3xx status without needing to guess
+      // what the upstream function will ever return.
+      return new Response(null, {
+        status: upstream.status,
+        headers: { location: upstream.headers.get('location') },
+      });
     }
 
     // Pass through any other status (404 for unknown link, 400, 500, ...).
