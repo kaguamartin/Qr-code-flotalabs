@@ -59,7 +59,7 @@ export default function PublicBioPage() {
   const [bioPage, setBioPage] = useState(null);
   const [blocks, setBlocks] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
+  const [linkStatus, setLinkStatus] = useState(null); // null | 'not_found' | 'archived'
 
   useEffect(() => {
     if (!shortCode) return;
@@ -77,7 +77,13 @@ export default function PublicBioPage() {
   .single();
 
     if (linkError || !link || link.destination_types?.key !== 'bio_page') {
-      setNotFound(true);
+      // The direct query can't tell "never existed" apart from "archived" -
+      // an archived link is invisible to RLS just like a nonexistent one,
+      // since anon read access requires archived_at is null. This RPC uses
+      // security definer to check the real status without exposing the row.
+      const { data: status } = await supabase
+        .rpc('get_public_link_status', { p_short_code: shortCode });
+      setLinkStatus(status === 'archived' ? 'archived' : 'not_found');
       setLoading(false);
       return;
     }
@@ -89,7 +95,7 @@ export default function PublicBioPage() {
       .single();
 
     if (pageError || !pageData) {
-      setNotFound(true);
+      setLinkStatus('not_found');
       setLoading(false);
       return;
     }
@@ -105,8 +111,7 @@ export default function PublicBioPage() {
 setBlocks(blockData ?? []);
 
     // fetch org logo via RPC — anon visitors have no direct SELECT policy on
-    // organizations (deliberately, to avoid exposing the whole row publicly),
-    // so this goes through a security definer function that only returns logo_url
+    // organizations (deliberately, to avoid exposing the whole row publicly)
     if (link.org_id) {
       const { data: logoUrl } = await supabase
         .rpc('get_public_org_logo', { p_org_id: link.org_id });
@@ -127,7 +132,7 @@ setBlocks(blockData ?? []);
     );
   }
 
-  if (notFound) {
+  if (linkStatus) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center text-center px-4" style={{ background: '#f9fafb' }}>
         <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style={{ background: '#f3f4f6' }}>
@@ -135,7 +140,9 @@ setBlocks(blockData ?? []);
         </div>
         <p className="font-medium mb-1">Page not found</p>
         <p className="text-sm" style={{ color: '#6b7280' }}>
-          This link may have been removed or does not exist.
+          {linkStatus === 'archived'
+            ? 'This link is no longer active.'
+            : "This link doesn't exist."}
         </p>
         <p className="text-xs mt-4" style={{ color: '#9ca3af' }}>Powered by Flota Labs</p>
       </div>
@@ -218,7 +225,7 @@ setBlocks(blockData ?? []);
         {/* footer */}
         <p className="text-xs text-center mt-8" style={{ color: '#9ca3af' }}>
           Powered by{' '}
-          <a href="https://www.flotalabs.co.ke" style={{ color: '#9d16f1', fontWeight: 500 }}>
+          <a href="https://flotalabs.co.ke" style={{ color: '#9d16f1', fontWeight: 500 }}>
             Flota Labs
           </a>
         </p>
