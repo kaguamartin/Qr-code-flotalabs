@@ -102,7 +102,7 @@ Deno.serve(async (req) => {
 
     // user doesn't exist — send invite email
     const { data: inviteData, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(email, {
-      redirectTo: `${Deno.env.get('APP_URL') ?? 'https://www.flotalabs.co.ke'}/onboarding`,
+      redirectTo: `${Deno.env.get('APP_URL') ?? 'https://www.www.flotalabs.co.ke'}/onboarding`,
       data: { invited_to_org: org_id, invited_role: role_id },
     });
 

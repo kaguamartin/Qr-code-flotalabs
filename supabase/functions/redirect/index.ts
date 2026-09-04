@@ -39,7 +39,7 @@ function infoPage(message) {
 <body>
   <h1>Flota Labs</h1>
   <p>${message}</p>
-  <a href="https://flotalabs.co.ke">flotalabs.co.ke</a>
+  <a href="https://www.flotalabs.co.ke">www.flotalabs.co.ke</a>
 </body>
 </html>`,
     // Status is 404 (this genuinely is a "not found" case). Content-Type
@@ -134,7 +134,7 @@ Deno.serve(async (req) => {
 
     // for bio pages — redirect to the React app's public bio page route
     if (destinationType === 'bio_page') {
-      const bioUrl = `${Deno.env.get('APP_URL') ?? 'https://www.flotalabs.co.ke'}/p/${shortCode}`;
+      const bioUrl = `${Deno.env.get('APP_URL') ?? 'https://www.www.flotalabs.co.ke'}/p/${shortCode}`;
       return Response.redirect(bioUrl, 302);
     }
 

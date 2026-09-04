@@ -218,7 +218,7 @@ setBlocks(blockData ?? []);
         {/* footer */}
         <p className="text-xs text-center mt-8" style={{ color: '#9ca3af' }}>
           Powered by{' '}
-          <a href="https://flotalabs.co.ke" style={{ color: '#9d16f1', fontWeight: 500 }}>
+          <a href="https://www.flotalabs.co.ke" style={{ color: '#9d16f1', fontWeight: 500 }}>
             Flota Labs
           </a>
         </p>
