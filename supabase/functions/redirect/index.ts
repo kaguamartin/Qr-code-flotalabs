@@ -5,6 +5,53 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Minimal branded fallback page — used for both "doesn't exist" and
+// "no longer active" cases. Kept intentionally plain for now (logo + one
+// line); revisit styling later if needed.
+function infoPage(message) {
+  return new Response(
+    `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Flota Labs</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #fafafa;
+      color: #1a1a1a;
+      text-align: center;
+      padding: 24px;
+    }
+    h1 { font-size: 18px; font-weight: 600; margin: 0; }
+    p { font-size: 14px; color: #666; margin: 0; }
+    a { color: #9d16f1; text-decoration: none; font-size: 13px; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <h1>Flota Labs</h1>
+  <p>${message}</p>
+  <a href="https://flotalabs.co.ke">flotalabs.co.ke</a>
+</body>
+</html>`,
+    // Deliberately 200, not 404: Supabase's edge gateway appears to force
+    // Content-Type to text/plain (and inject a strict CSP) on non-2xx
+    // responses regardless of what the function sets, so the HTML renders
+    // as raw text instead of a page. This endpoint is never crawled/indexed,
+    // so the HTTP status code carries no real cost here - the message text
+    // itself still communicates "not found" to the visitor.
+    { status: 200, headers: { 'content-type': 'text/html' } }
+  );
+}
+
 Deno.serve(async (req) => {
   // handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -26,22 +73,28 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     );
 
-    // look up the link
+    // look up the link WITHOUT filtering on archived_at, so we can tell
+    // "never existed" apart from "existed but was archived" and show a
+    // different message for each, instead of a single generic 404.
     const { data: link, error } = await supabase
       .from('links')
       .select(`
         id,
         short_code,
+        archived_at,
         destination_data,
         destination_types(key, encoding_mode, supports_funnel),
         campaigns(name, corridor)
       `)
       .eq('short_code', shortCode)
-      .is('archived_at', null)
       .single();
 
     if (error || !link) {
-      return new Response('Link not found', { status: 404 });
+      return infoPage("This link doesn't exist.");
+    }
+
+    if (link.archived_at) {
+      return infoPage('This link is no longer active.');
     }
 
     // parse request metadata for scan logging
