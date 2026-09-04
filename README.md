@@ -8,7 +8,7 @@ Flota Labs operates as super admin across every client workspace.
 
 **Status: live backend, not a prototype.** Real Supabase auth, real
 tables with RLS, real Edge Functions, deployed to production at
-`www.www.flotalabs.co.ke`. See "Current state" below for exactly what's wired
+`www.flotalabs.co.ke`. See "Current state" below for exactly what's wired
 up vs. still open.
 
 ## Running it locally
@@ -35,7 +35,7 @@ automatically from `vercel.json`.
 
 ## Deployment
 
-- **App:** Vercel, custom domain `www.www.flotalabs.co.ke`
+- **App:** Vercel, custom domain `www.flotalabs.co.ke`
 - **Landing page:** `www.flotalabs.co.ke` (bare apex) stays on the existing cPanel
   site — separate from this project entirely
 - **Backend:** Supabase (Postgres + Auth + Storage + Edge Functions), project
