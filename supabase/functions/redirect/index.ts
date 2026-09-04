@@ -42,13 +42,11 @@ function infoPage(message) {
   <a href="https://flotalabs.co.ke">flotalabs.co.ke</a>
 </body>
 </html>`,
-    // Deliberately 200, not 404: Supabase's edge gateway appears to force
-    // Content-Type to text/plain (and inject a strict CSP) on non-2xx
-    // responses regardless of what the function sets, so the HTML renders
-    // as raw text instead of a page. This endpoint is never crawled/indexed,
-    // so the HTTP status code carries no real cost here - the message text
-    // itself still communicates "not found" to the visitor.
-    { status: 200, headers: { 'content-type': 'text/html' } }
+    // Status is 404 (this genuinely is a "not found" case). Content-Type
+    // here doesn't actually matter for real visitors - middleware.js hardcodes
+    // text/html on its pass-through regardless of what this function sends,
+    // because Supabase's gateway was found to override this header unpredictably.
+    { status: 404, headers: { 'content-type': 'text/html' } }
   );
 }
 

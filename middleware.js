@@ -91,10 +91,17 @@ export default async function middleware(request) {
 
     // Pass through any other status (404 for unknown link, 400, 500, ...).
     // Response is a standard Web API - no framework package needed for this part.
+    // NOTE: deliberately NOT forwarding upstream's content-type header here.
+    // Supabase's edge gateway appears to override it to text/plain regardless
+    // of what the redirect function explicitly sets (confirmed on both 404
+    // and 200 responses, directly against the *.supabase.co URL, bypassing
+    // middleware entirely) - root cause undocumented, but everything this
+    // endpoint's pass-through branch ever returns is HTML, so hardcoding it
+    // here sidesteps the issue at the one layer we actually control.
     return new Response(await upstream.text(), {
       status: upstream.status,
       headers: {
-        'content-type': upstream.headers.get('content-type') ?? 'text/plain',
+        'content-type': 'text/html',
       },
     });
   } catch (err) {
