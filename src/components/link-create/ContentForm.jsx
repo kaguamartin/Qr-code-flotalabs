@@ -23,6 +23,7 @@ export default function ContentForm({
   corridor,
   onCorridorChange,
   campaigns,
+  editMode = false,
 }) {
   const [showPassword, setShowPassword] = useState(false);
   const fields = activeType?.field_schema ?? [];
@@ -190,31 +191,47 @@ export default function ContentForm({
       {activeType?.encoding_mode === 'redirect' && (
         <div className="border-t pt-4 mt-2 mb-4" style={{ borderColor: 'var(--color-border)' }}>
           <label className="text-xs block mb-1.5 font-medium" style={{ color: 'var(--color-ink-secondary)' }}>Short link</label>
-          <div className="flex items-center">
-            <span className="font-mono text-sm px-3 py-2 rounded-l-lg border border-r-0 shrink-0" style={{ borderColor: 'var(--color-border)', background: 'var(--color-canvas)', color: 'var(--color-ink-secondary)' }}>
-              {SHORT_LINK_BASE_URL.replace('https://', '')}/{orgSlug}-
-            </span>
-            <div className="relative flex-1">
-              <input
-                className="input-field rounded-l-none w-full"
-                placeholder="your-suffix"
-                value={shortCodeSuffix}
-                maxLength={20}
-                onChange={(e) => onShortCodeChange(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-              />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                {checkingCode && <Icons.Loader size={13} className="animate-spin" style={{ color: 'var(--color-ink-tertiary)' }} />}
-                {!checkingCode && shortCodeAvailable === true && <Icons.CheckCircle size={13} style={{ color: 'var(--color-success-fg)' }} />}
-                {!checkingCode && shortCodeAvailable === false && <Icons.XCircle size={13} style={{ color: 'var(--color-danger-fg)' }} />}
+          {editMode ? (
+            <>
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-sm px-3 py-2 rounded-lg border flex-1" style={{ borderColor: 'var(--color-border)', background: 'var(--color-canvas)', color: 'var(--color-ink-secondary)' }}>
+                  {SHORT_LINK_BASE_URL.replace('https://', '')}/{orgSlug}-{shortCodeSuffix}
+                </span>
+                <Icons.Lock size={13} style={{ color: 'var(--color-ink-tertiary)' }} />
               </div>
-            </div>
-          </div>
-          <div className="flex justify-between mt-1">
-            <p className="text-[11px]" style={{ color: shortCodeAvailable === false ? 'var(--color-danger-fg)' : shortCodeAvailable === true ? 'var(--color-success-fg)' : 'var(--color-ink-tertiary)' }}>
-              {checkingCode ? 'Checking availability...' : shortCodeAvailable === false ? 'This code is already taken' : shortCodeAvailable === true ? '✓ Available' : 'Only lowercase letters, numbers, hyphens'}
-            </p>
-            <p className="text-[11px]" style={{ color: 'var(--color-ink-tertiary)' }}>{shortCodeSuffix.length}/20</p>
-          </div>
+              <p className="text-[11px] mt-1" style={{ color: 'var(--color-ink-tertiary)' }}>
+                Short link can't be changed after creation, to avoid breaking printed QR codes or shared links.
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center">
+                <span className="font-mono text-sm px-3 py-2 rounded-l-lg border border-r-0 shrink-0" style={{ borderColor: 'var(--color-border)', background: 'var(--color-canvas)', color: 'var(--color-ink-secondary)' }}>
+                  {SHORT_LINK_BASE_URL.replace('https://', '')}/{orgSlug}-
+                </span>
+                <div className="relative flex-1">
+                  <input
+                    className="input-field rounded-l-none w-full"
+                    placeholder="your-suffix"
+                    value={shortCodeSuffix}
+                    maxLength={20}
+                    onChange={(e) => onShortCodeChange(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    {checkingCode && <Icons.Loader size={13} className="animate-spin" style={{ color: 'var(--color-ink-tertiary)' }} />}
+                    {!checkingCode && shortCodeAvailable === true && <Icons.CheckCircle size={13} style={{ color: 'var(--color-success-fg)' }} />}
+                    {!checkingCode && shortCodeAvailable === false && <Icons.XCircle size={13} style={{ color: 'var(--color-danger-fg)' }} />}
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-between mt-1">
+                <p className="text-[11px]" style={{ color: shortCodeAvailable === false ? 'var(--color-danger-fg)' : shortCodeAvailable === true ? 'var(--color-success-fg)' : 'var(--color-ink-tertiary)' }}>
+                  {checkingCode ? 'Checking availability...' : shortCodeAvailable === false ? 'This code is already taken' : shortCodeAvailable === true ? '✓ Available' : 'Only lowercase letters, numbers, hyphens'}
+                </p>
+                <p className="text-[11px]" style={{ color: 'var(--color-ink-tertiary)' }}>{shortCodeSuffix.length}/20</p>
+              </div>
+            </>
+          )}
         </div>
       )}
 

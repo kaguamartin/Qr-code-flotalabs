@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ChevronRight, Download, Smartphone, Apple, Bot, Monitor, Loader } from 'lucide-react';
+import { ChevronRight, Download, Smartphone, Apple, Bot, Monitor, Loader, ExternalLink } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, CartesianGrid, Tooltip } from 'recharts';
 import { QRCodeSVG } from 'qrcode.react';
 import { TypeChip } from '../components/Shared';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 import { SHORT_LINK_BASE_URL } from '../config';
+import EditLinkModal from '../components/link-create/EditLinkModal';
 
 const typeColorMap = {
   website: 'blue', catalog: 'blue', video: 'blue', pdf: 'blue',
@@ -57,6 +58,21 @@ function getQrValue(link) {
   }
 }
 
+// The actual destination a visitor lands on — different from getQrValue,
+// which for redirect-mode types returns the *short* link, not the final
+// destination. Bio pages open the public /p/ page; raw types (wifi, vcard,
+// call, sms, email, map) have no single browsable URL, so return null and
+// let the caller hide/disable the "Test this link" button for those.
+function getDestinationUrl(link) {
+  if (!link) return null;
+  const mode = link.destination_types?.encoding_mode;
+  const key = link.destination_types?.key;
+  const data = link.destination_data ?? {};
+  if (key === 'bio_page') return `${SHORT_LINK_BASE_URL}/p/${link.short_code}`;
+  if (mode === 'redirect') return data.url ?? data.android_url ?? data.ios_url ?? null;
+  return null;
+}
+
 function formatRelativeTime(isoString) {
   const diffMs = Date.now() - new Date(isoString).getTime();
   const mins = Math.floor(diffMs / 60000);
@@ -77,6 +93,7 @@ export default function LinkDetail() {
   const [clicks, setClicks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showEditModal, setShowEditModal] = useState(false);
 
   useEffect(() => {
     if (!id || !orgId) return;
@@ -91,8 +108,8 @@ export default function LinkDetail() {
   .from('links')
   .select(`
     *,
-    destination_types(key, display_name, encoding_mode, supports_funnel),
-    campaigns(name, corridor),
+    destination_types(id, key, display_name, encoding_mode, supports_funnel, field_schema, group_label),
+    campaigns(id, name, corridor),
     organizations(logo_url, primary_color)
   `)
   .eq('id', id)
@@ -139,6 +156,7 @@ export default function LinkDetail() {
   
   const isRedirect = link.destination_types?.encoding_mode === 'redirect';
   const typeKey = link.destination_types?.key ?? '';
+  const destinationUrl = getDestinationUrl(link);
   const qrValue = getQrValue(link);
 
   const totalScans = clicks.length;
@@ -229,7 +247,7 @@ export default function LinkDetail() {
               <Download size={13} /> QR
             </button>
             {can('links.edit') && (
-  <button className="btn-secondary flex-1 justify-center text-xs h-8">
+  <button onClick={() => setShowEditModal(true)} className="btn-secondary flex-1 justify-center text-xs h-8">
     Edit
   </button>
 )}
@@ -291,6 +309,54 @@ export default function LinkDetail() {
             )}
           </div>
         </div>
+      </div>
+
+      <div className="card p-4">
+        <div className="flex items-center justify-between mb-2.5">
+          <p className="text-sm font-medium">Destination</p>
+          {destinationUrl && (
+            <a
+              href={destinationUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-secondary text-xs h-7 px-2.5"
+            >
+              <ExternalLink size={12} /> Test this link
+            </a>
+          )}
+        </div>
+        {typeKey === 'bio_page' ? (
+          <p className="text-xs" style={{ color: 'var(--color-ink-tertiary)' }}>
+            Content for this page is managed in the{' '}
+            <Link to="/app/bio" style={{ color: 'var(--color-brand-blue)' }}>Link-in-bio builder</Link>.
+          </p>
+        ) : typeKey === 'social' ? (
+          <div className="flex flex-col gap-1.5">
+            <div className="flex justify-between text-xs">
+              <span style={{ color: 'var(--color-ink-tertiary)' }}>Platform</span>
+              <span className="font-mono">{link.destination_data?.platform ?? '—'}</span>
+            </div>
+            <div className="flex justify-between text-xs">
+              <span style={{ color: 'var(--color-ink-tertiary)' }}>URL</span>
+              <span className="font-mono truncate max-w-[60%]">{link.destination_data?.url ?? '—'}</span>
+            </div>
+          </div>
+        ) : (link.destination_types?.field_schema ?? []).length === 0 ? (
+          <p className="text-xs" style={{ color: 'var(--color-ink-tertiary)' }}>No destination details on file.</p>
+        ) : (
+          <div className="flex flex-col gap-1.5">
+            {(link.destination_types.field_schema).map((f) => {
+              const value = link.destination_data?.[f.key];
+              const displayValue = f.key === 'password' && value ? '••••••••' : (value || '—');
+              return (
+                <div key={f.key} className="flex justify-between text-xs gap-4">
+                  <span style={{ color: 'var(--color-ink-tertiary)' }}>{f.label}</span>
+                  <span className="font-mono truncate max-w-[60%]">{displayValue}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {isRedirect && (
@@ -370,6 +436,16 @@ export default function LinkDetail() {
             This QR code encodes data directly — the phone handles it natively without going through Flota Labs servers, so scan events can't be tracked. This is expected behaviour for {link.destination_types?.display_name} QR codes.
           </p>
         </div>
+      )}
+
+      {showEditModal && (
+        <EditLinkModal
+          link={link}
+          orgId={orgId}
+          orgSlug={membership?.organizations?.slug ?? ''}
+          onClose={() => setShowEditModal(false)}
+          onSaved={() => { setShowEditModal(false); loadLink(); }}
+        />
       )}
     </div>
   );
