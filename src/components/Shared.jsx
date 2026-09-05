@@ -1,3 +1,5 @@
+import * as Icons from 'lucide-react';
+
 export function StatCard({ label, value, sublabel, trend }) {
   return (
     <div className="card p-4">
@@ -42,5 +44,30 @@ export function TypeChip({ color, children }) {
     >
       {children}
     </span>
+  );
+}
+
+// Reusable confirmation dialog for destructive/reversible actions
+// (archiving a link, deleting a bio page button, etc). Keep this generic —
+// callers pass their own copy rather than this component knowing about
+// specific entities.
+export function ConfirmDialog({ title, message, confirmLabel = 'Confirm', danger = false, onConfirm, onCancel }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.4)' }}>
+      <div className="card p-5 w-full max-w-xs">
+        <p className="text-sm font-medium mb-1.5">{title}</p>
+        <p className="text-xs mb-4" style={{ color: 'var(--color-ink-secondary)' }}>{message}</p>
+        <div className="flex gap-2">
+          <button onClick={onCancel} className="btn-secondary flex-1 justify-center text-sm">Cancel</button>
+          <button
+            onClick={onConfirm}
+            className="flex-1 justify-center text-sm rounded-lg font-medium py-2 flex items-center"
+            style={{ background: danger ? 'var(--color-danger-fg)' : 'var(--color-brand-blue)', color: 'white' }}
+          >
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

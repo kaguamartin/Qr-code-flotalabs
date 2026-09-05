@@ -4,6 +4,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 import { SHORT_LINK_BASE_URL } from '../config';
+import { ConfirmDialog } from '../components/Shared';
 
 const QUICK_TYPES = [
   { key: 'website',  label: 'Website / URL', icon: 'Globe',         color: 'blue',  fields: [{ key: 'url',   label: 'URL',           type: 'url',   placeholder: 'https://...' }] },
@@ -107,11 +108,18 @@ function QRModal({ shortCode, onClose }) {
   );
 }
 
-function AddBlockModal({ onAdd, onClose, socialPlatforms }) {
-  const [selectedType, setSelectedType] = useState(null);
-  const [selectedPlatform, setSelectedPlatform] = useState(null);
-  const [label, setLabel] = useState('');
-  const [fieldValues, setFieldValues] = useState({});
+function AddBlockModal({ onAdd, onSave, onClose, socialPlatforms, editingBlock = null }) {
+  const isEditing = !!editingBlock;
+
+  const initialType = isEditing ? QUICK_TYPES.find((t) => t.key === editingBlock.destination_types?.key) : null;
+  const initialPlatform = isEditing && initialType?.key === 'social'
+    ? socialPlatforms.find((p) => p.key === editingBlock.destination_data?.platform) ?? null
+    : null;
+
+  const [selectedType, setSelectedType] = useState(initialType);
+  const [selectedPlatform, setSelectedPlatform] = useState(initialPlatform);
+  const [label, setLabel] = useState(editingBlock?.label ?? '');
+  const [fieldValues, setFieldValues] = useState(editingBlock?.destination_data ?? {});
   const [error, setError] = useState('');
 
   function handleTypeSelect(type) {
@@ -135,13 +143,14 @@ function AddBlockModal({ onAdd, onClose, socialPlatforms }) {
     if (selectedType.key === 'social') {
       if (!selectedPlatform) { setError('Please select a platform.'); return; }
       if (!fieldValues.url?.trim()) { setError('URL is required.'); return; }
-      onAdd({
+      const payload = {
         type_key: 'social',
         label: label.trim(),
         icon: 'Share2',
         color: 'teal',
         destination_data: { ...fieldValues, platform: selectedPlatform.key },
-      });
+      };
+      isEditing ? onSave(payload) : onAdd(payload);
       return;
     }
 
@@ -150,13 +159,14 @@ function AddBlockModal({ onAdd, onClose, socialPlatforms }) {
       setError(firstField.label + ' is required.');
       return;
     }
-    onAdd({
+    const payload = {
       type_key: selectedType.key,
       label: label.trim(),
       icon: selectedType.icon,
       color: selectedType.color,
       destination_data: fieldValues,
-    });
+    };
+    isEditing ? onSave(payload) : onAdd(payload);
   }
 
   const isSocial = selectedType?.key === 'social';
@@ -165,7 +175,7 @@ function AddBlockModal({ onAdd, onClose, socialPlatforms }) {
     <div className="fixed inset-0 flex items-center justify-center z-50" style={{ background: 'rgba(0,0,0,0.4)' }}>
       <div className="card p-6 w-full max-w-sm max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
-          <p className="text-sm font-medium">Add button</p>
+          <p className="text-sm font-medium">{isEditing ? 'Edit button' : 'Add button'}</p>
           <button onClick={onClose} style={{ color: 'var(--color-ink-tertiary)' }}><Icons.X size={16} /></button>
         </div>
 
@@ -175,30 +185,43 @@ function AddBlockModal({ onAdd, onClose, socialPlatforms }) {
           </p>
         )}
 
-        <p className="text-xs mb-2" style={{ color: 'var(--color-ink-secondary)' }}>Button type</p>
-        <div className="grid grid-cols-3 gap-2 mb-4">
-          {QUICK_TYPES.map((t) => {
-            const Icon = Icons[t.icon] ?? Icons.Link;
-            const selected = selectedType?.key === t.key;
-            return (
-              <button
-                key={t.key}
-                onClick={() => handleTypeSelect(t)}
-                className="flex flex-col items-center gap-1.5 p-2.5 rounded-xl border text-center transition-all"
-                style={{
-                  borderColor: selected ? 'var(--color-brand-blue)' : 'var(--color-border)',
-                  borderWidth: selected ? 2 : 1,
-                  background: selected ? 'var(--color-info-bg)' : 'transparent',
-                }}
-              >
-                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'var(--color-type-' + t.color + '-bg)' }}>
-                  <Icon size={13} style={{ color: 'var(--color-type-' + t.color + '-fg)' }} />
-                </div>
-                <span className="text-[10px] leading-tight" style={{ color: 'var(--color-ink-secondary)' }}>{t.label}</span>
-              </button>
-            );
-          })}
-        </div>
+        {isEditing ? (
+          <div className="flex items-center gap-2 mb-4 px-3 py-2 rounded-lg" style={{ background: 'var(--color-canvas)' }}>
+            {(() => {
+              const Icon = Icons[selectedType?.icon] ?? Icons.Link;
+              return <Icon size={14} style={{ color: 'var(--color-ink-secondary)' }} />;
+            })()}
+            <span className="text-xs font-medium">{selectedType?.label}</span>
+            <span className="text-[11px] ml-auto" style={{ color: 'var(--color-ink-tertiary)' }}>Type can't be changed</span>
+          </div>
+        ) : (
+          <>
+            <p className="text-xs mb-2" style={{ color: 'var(--color-ink-secondary)' }}>Button type</p>
+            <div className="grid grid-cols-3 gap-2 mb-4">
+              {QUICK_TYPES.map((t) => {
+                const Icon = Icons[t.icon] ?? Icons.Link;
+                const selected = selectedType?.key === t.key;
+                return (
+                  <button
+                    key={t.key}
+                    onClick={() => handleTypeSelect(t)}
+                    className="flex flex-col items-center gap-1.5 p-2.5 rounded-xl border text-center transition-all"
+                    style={{
+                      borderColor: selected ? 'var(--color-brand-blue)' : 'var(--color-border)',
+                      borderWidth: selected ? 2 : 1,
+                      background: selected ? 'var(--color-info-bg)' : 'transparent',
+                    }}
+                  >
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'var(--color-type-' + t.color + '-bg)' }}>
+                      <Icon size={13} style={{ color: 'var(--color-type-' + t.color + '-fg)' }} />
+                    </div>
+                    <span className="text-[10px] leading-tight" style={{ color: 'var(--color-ink-secondary)' }}>{t.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
 
         {/* social platform picker */}
         {isSocial && !selectedPlatform && (
@@ -313,7 +336,7 @@ function AddBlockModal({ onAdd, onClose, socialPlatforms }) {
             className="btn-primary flex-1 justify-center"
             disabled={!selectedType || (isSocial && !selectedPlatform)}
           >
-            Add button
+            {isEditing ? 'Save changes' : 'Add button'}
           </button>
         </div>
       </div>
@@ -409,6 +432,8 @@ export default function BioBuilder() {
   const [title, setTitle] = useState('');
   const [subtitle, setSubtitle] = useState('');
   const [dragIndex, setDragIndex] = useState(null);
+  const [confirmDeleteBlock, setConfirmDeleteBlock] = useState(null);
+  const [editingBlock, setEditingBlock] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -540,6 +565,24 @@ export default function BioBuilder() {
     setShowAddModal(false);
   }
 
+  async function handleUpdateBlock(blockData) {
+    if (!editingBlock) return;
+    const { data: updated, error } = await supabase
+      .from('bio_page_blocks')
+      .update({
+        label: blockData.label,
+        icon: blockData.icon,
+        destination_data: blockData.destination_data,
+      })
+      .eq('id', editingBlock.id)
+      .select('*, destination_types(key, display_name)')
+      .single();
+
+    if (error) { setError(error.message); return; }
+    setBlocks(blocks.map((b) => (b.id === editingBlock.id ? updated : b)));
+    setEditingBlock(null);
+  }
+
   async function handleNewPageCreated(newLinkId) {
     setShowNewPageModal(false);
     await loadBioLinks();
@@ -585,6 +628,24 @@ export default function BioBuilder() {
   return (
     <div>
       {showAddModal && <AddBlockModal onAdd={handleAddBlock} onClose={() => setShowAddModal(false)} socialPlatforms={socialPlatforms} />}
+      {editingBlock && (
+        <AddBlockModal
+          editingBlock={editingBlock}
+          onSave={handleUpdateBlock}
+          onClose={() => setEditingBlock(null)}
+          socialPlatforms={socialPlatforms}
+        />
+      )}
+      {confirmDeleteBlock && (
+        <ConfirmDialog
+          title="Delete this button?"
+          message={`"${confirmDeleteBlock.label}" will be removed from your bio page. This can't be undone.`}
+          confirmLabel="Delete"
+          danger
+          onConfirm={() => { removeBlock(confirmDeleteBlock.id); setConfirmDeleteBlock(null); }}
+          onCancel={() => setConfirmDeleteBlock(null)}
+        />
+      )}
       {showQRModal && selectedLink && <QRModal shortCode={selectedLink.short_code} onClose={() => setShowQRModal(false)} />}
       {showNewPageModal && (
         <NewBioPageModal
@@ -710,7 +771,12 @@ export default function BioBuilder() {
                       {b.destination_types?.display_name ?? '—'}
                     </span>
                     {can('links.edit') && (
-                    <button onClick={() => removeBlock(b.id)} className="ml-1">
+                    <button onClick={() => setEditingBlock(b)} className="ml-1" title="Edit">
+                      <Icons.Pencil size={14} style={{ color: 'var(--color-ink-tertiary)' }} />
+                    </button>
+                    )}
+                    {can('links.edit') && (
+                    <button onClick={() => setConfirmDeleteBlock(b)} className="ml-1" title="Delete">
                       <Icons.Trash2 size={14} style={{ color: 'var(--color-ink-tertiary)' }} />
                     </button>
                     )}
