@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { UserPlus, Plus, MoreHorizontal, X } from 'lucide-react';
-import { StatusBadge } from '../components/Shared';
+import { StatusBadge, ConfirmDialog } from '../components/Shared';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 
@@ -23,6 +23,7 @@ export default function TeamRoles() {
 
   const [members, setMembers] = useState([]);
   const [roles, setRoles] = useState([]);
+  const [cancelTarget, setCancelTarget] = useState(null);
   const [permissions, setPermissions] = useState([]);
   const [activeRoleId, setActiveRoleId] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -155,6 +156,25 @@ export default function TeamRoles() {
       await loadAll();
     }
   }
+  async function handleChangeRole(membershipId, newRoleId) {
+    const { error } = await supabase
+      .from('memberships')
+      .update({ role_id: newRoleId })
+      .eq('id', membershipId);
+    if (error) { alert(error.message); return; }
+    await loadAll();
+  }
+
+  async function handleCancelInvite(membershipId) {
+    const { error } = await supabase
+      .from('memberships')
+      .delete()
+      .eq('id', membershipId);
+    setCancelTarget(null);
+    if (error) { alert(error.message); return; }
+    await loadAll();
+  }
+
   async function handleResendInvite(email, roleId) {
     if (!email || !roleId) return;
     const { data: { session } } = await supabase.auth.getSession();
@@ -422,7 +442,19 @@ export default function TeamRoles() {
   )}
 </td>
                     <td className="py-2.5">
-                      <RoleBadge roleName={m.roles?.name ?? '—'} index={i} />
+                      {can('team.manage_roles') ? (
+                        <select
+                          className="input-field w-auto text-xs h-7 py-0"
+                          value={m.roles?.id ?? ''}
+                          onChange={(e) => handleChangeRole(m.id, e.target.value)}
+                        >
+                          {roles.map((r) => (
+                            <option key={r.id} value={r.id}>{r.name}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <RoleBadge roleName={m.roles?.name ?? '—'} index={i} />
+                      )}
                     </td>
                     <td className="py-2.5">
                       <StatusBadge status={m.status} />
@@ -449,13 +481,24 @@ export default function TeamRoles() {
                     </td>
                     <td className="py-2.5 px-5 text-right">
                       {isInvited ? (
-                        <button
-                         onClick={() => handleResendInvite(m.invited_email ?? m.users?.email, m.roles?.id)}
-                          className="text-xs px-2.5 py-1 rounded-lg border transition-colors hover:bg-[var(--color-canvas)]"
-                          style={{ borderColor: 'var(--color-border)', color: 'var(--color-ink-secondary)' }}
-                        >
-                          Resend
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                           onClick={() => handleResendInvite(m.invited_email ?? m.users?.email, m.roles?.id)}
+                            className="text-xs px-2.5 py-1 rounded-lg border transition-colors hover:bg-[var(--color-canvas)]"
+                            style={{ borderColor: 'var(--color-border)', color: 'var(--color-ink-secondary)' }}
+                          >
+                            Resend
+                          </button>
+                          {can('team.manage_roles') && (
+                            <button
+                              onClick={() => setCancelTarget(m)}
+                              className="text-xs px-2.5 py-1 rounded-lg border transition-colors hover:bg-[var(--color-canvas)]"
+                              style={{ borderColor: 'var(--color-border)', color: 'var(--color-danger-fg)' }}
+                            >
+                              Cancel
+                            </button>
+                          )}
+                        </div>
                       ) : (
                         <MoreHorizontal size={16} style={{ color: 'var(--color-ink-secondary)' }} />
                       )}
@@ -554,6 +597,17 @@ export default function TeamRoles() {
           </div>
         )}
       </div>
+
+      {cancelTarget && (
+        <ConfirmDialog
+          title="Cancel this invite?"
+          message={`The pending invite for ${cancelTarget.invited_email ?? cancelTarget.users?.email} will be removed. To fix a typo'd email, cancel it here, then send a fresh invite with the correct address from the Invite button above.`}
+          confirmLabel="Cancel invite"
+          danger
+          onConfirm={() => handleCancelInvite(cancelTarget.id)}
+          onCancel={() => setCancelTarget(null)}
+        />
+      )}
     </div>
   );
 }
