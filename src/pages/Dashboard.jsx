@@ -15,6 +15,12 @@ const typeColorMap = {
   review: 'lime', survey: 'lime',
 };
 
+const RANGE_OPTIONS = [
+  { value: '30', label: 'Last 30 days' },
+  { value: '7', label: 'Last 7 days' },
+  { value: 'all', label: 'Campaign to date' }, // interpreted as all-time, no lower bound
+];
+
 export default function Dashboard() {
   const { membership, can } = useAuth();
   const org = membership?.organizations;
@@ -24,18 +30,22 @@ export default function Dashboard() {
   const [links, setLinks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [dateRange, setDateRange] = useState('30');
+  const [sortBy, setSortBy] = useState('newest'); // 'newest' | 'scans'
 
   useEffect(() => {
     if (!orgId) return;
     loadDashboard();
-  }, [orgId]);
+  }, [orgId, dateRange]);
 
   async function loadDashboard() {
     setLoading(true);
     setError('');
 
+    const daysInput = dateRange === 'all' ? null : parseInt(dateRange, 10);
+
     const [statsResult, linksResult] = await Promise.all([
-      supabase.rpc('get_dashboard_stats', { org_id_input: orgId }),
+      supabase.rpc('get_dashboard_stats', { org_id_input: orgId, days_input: daysInput }),
       supabase
         .from('links')
         .select(`
@@ -44,7 +54,8 @@ export default function Dashboard() {
           destination_data,
           created_at,
           destination_types(key, display_name),
-          campaigns(name, corridor)
+          campaigns(name, corridor),
+          clicks(count)
         `)
         .eq('org_id', orgId)
         .is('archived_at', null)
@@ -94,6 +105,8 @@ export default function Dashboard() {
     ? ((uniqueScans / totalScans) * 100).toFixed(1)
     : 0;
 
+  const rangeLabel = RANGE_OPTIONS.find((r) => r.value === dateRange)?.label ?? 'Last 30 days';
+
   const funnelSteps = [
     { label: 'Scanned', value: funnel.scanned ?? 0, color: 'var(--color-brand-blue)' },
     { label: 'Reached destination', value: funnel.reached_destination ?? 0, color: 'var(--color-brand-blue)' },
@@ -104,20 +117,25 @@ export default function Dashboard() {
     pct: funnel.scanned > 0 ? Math.round((step.value / funnel.scanned) * 100) : 0,
   }));
 
+  const sortedLinks = [...links].sort((a, b) => {
+    if (sortBy === 'scans') return (b.clicks?.[0]?.count ?? 0) - (a.clicks?.[0]?.count ?? 0);
+    return new Date(b.created_at) - new Date(a.created_at);
+  });
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-lg font-medium">Dashboard</h1>
           <p className="text-sm" style={{ color: 'var(--color-ink-secondary)' }}>
-            {org?.name ?? '—'} &middot; last 30 days
+            {org?.name ?? '—'} &middot; {rangeLabel.toLowerCase()}
           </p>
         </div>
         <div className="flex gap-2">
-          <select className="input-field w-auto">
-            <option>Last 30 days</option>
-            <option>Last 7 days</option>
-            <option>Campaign to date</option>
+          <select className="input-field w-auto" value={dateRange} onChange={(e) => setDateRange(e.target.value)}>
+            {RANGE_OPTIONS.map((r) => (
+              <option key={r.value} value={r.value}>{r.label}</option>
+            ))}
           </select>
           {can('links.create') && (
   <Link to="/app/links/new" className="btn-primary">
@@ -128,7 +146,7 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-4 gap-3 mb-6">
-        <StatCard label="Total scans" value={totalScans.toLocaleString()} sublabel="Last 30 days" />
+        <StatCard label="Total scans" value={totalScans.toLocaleString()} sublabel={rangeLabel} />
         <StatCard label="Unique visitors" value={uniqueScans.toLocaleString()} sublabel={`${uniquePct}% of scans`} />
         <StatCard label="Active links" value={activeLinks} sublabel="Excluding archived" />
         <StatCard label="Conversion rate" value="—" sublabel="Requires tracking pixel" />
@@ -196,7 +214,17 @@ export default function Dashboard() {
       <div className="card overflow-hidden">
         <div className="px-5 py-3.5 flex items-center justify-between">
           <p className="text-sm font-medium">Links</p>
-          <span className="text-xs" style={{ color: 'var(--color-ink-secondary)' }}>{links.length} total</span>
+          <div className="flex items-center gap-3">
+            <select
+              className="input-field w-auto text-xs h-7 py-0"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+            >
+              <option value="newest">Newest first</option>
+              <option value="scans">Most scanned</option>
+            </select>
+            <span className="text-xs" style={{ color: 'var(--color-ink-secondary)' }}>{links.length} total</span>
+          </div>
         </div>
         <table className="w-full text-sm">
           <thead>
@@ -209,14 +237,14 @@ export default function Dashboard() {
             </tr>
           </thead>
           <tbody>
-            {links.length === 0 ? (
+            {sortedLinks.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-5 py-8 text-center text-sm" style={{ color: 'var(--color-ink-tertiary)' }}>
                   No links yet — create your first QR code to get started.
                 </td>
               </tr>
             ) : (
-              links.map((l) => (
+              sortedLinks.map((l) => (
                 <tr key={l.id} className="border-t hover:bg-[var(--color-canvas)] cursor-pointer" style={{ borderColor: 'var(--color-border)' }}>
                   <td className="px-5 py-2.5 font-mono text-xs">
                     <Link to={`/app/links/${l.id}`} className="hover:underline">
@@ -231,7 +259,7 @@ export default function Dashboard() {
                   <td className="py-2.5" style={{ color: 'var(--color-ink-secondary)' }}>
                     {l.campaigns?.corridor ?? '—'}
                   </td>
-                  <td className="py-2.5 text-right font-medium">—</td>
+                  <td className="py-2.5 text-right font-medium">{l.clicks?.[0]?.count ?? 0}</td>
                   <td className="py-2.5 text-right" style={{ color: 'var(--color-ink-secondary)' }}>—</td>
                   <td className="py-2.5 px-5 text-right">
                     <Link to={`/app/links/${l.id}`}>
