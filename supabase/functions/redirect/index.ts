@@ -5,6 +5,31 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// One-way HMAC-SHA256 hash of the visitor's IP, keyed with a secret pepper
+// (IP_HASH_SECRET env var). Unlike the previous btoa() encoding, this can't
+// be reversed even with full database access - the secret never leaves this
+// function's environment. Still lets us dedup/rate-limit by IP without
+// storing anything that decodes back to a real address.
+async function hashIp(ip) {
+  const secret = Deno.env.get('IP_HASH_SECRET');
+  if (!secret) {
+    console.error('IP_HASH_SECRET is not set - refusing to fall back to a weaker hash');
+    return null;
+  }
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  );
+  const signature = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(ip));
+  return Array.from(new Uint8Array(signature))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
+    .slice(0, 32);
+}
+
 // Minimal branded fallback page — used for both "doesn't exist" and
 // "no longer active" cases. Kept intentionally plain for now (logo + one
 // line); revisit styling later if needed.
@@ -39,7 +64,7 @@ function infoPage(message) {
 <body>
   <h1>Flota Labs</h1>
   <p>${message}</p>
-  <a href="https://www.flotalabs.co.ke">www.flotalabs.co.ke</a>
+  <a href="https://flotalabs.co.ke">flotalabs.co.ke</a>
 </body>
 </html>`,
     // Status is 404 (this genuinely is a "not found" case). Content-Type
@@ -119,7 +144,7 @@ Deno.serve(async (req) => {
     // log the scan — fire and forget, don't block the redirect
     supabase.from('clicks').insert({
       link_id: link.id,
-      ip_hash: ip ? btoa(ip).slice(0, 32) : null,
+      ip_hash: ip ? await hashIp(ip) : null,
       city,
       country,
       device_type: deviceType,
