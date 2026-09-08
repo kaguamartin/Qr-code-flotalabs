@@ -106,6 +106,7 @@ Deno.serve(async (req) => {
         short_code,
         archived_at,
         destination_data,
+        pixel_enabled,
         destination_types(key, encoding_mode, supports_funnel),
         campaigns(name, corridor)
       `)
@@ -141,8 +142,11 @@ Deno.serve(async (req) => {
       : userAgent.includes('Mac') ? 'macOS'
       : 'Other';
 
-    // log the scan — fire and forget, don't block the redirect
-    supabase.from('clicks').insert({
+    // log the scan. Fire-and-forget for the common case (no latency added
+    // to the redirect) - but if this link has pixel tracking enabled, we
+    // need the inserted row's id back to hand to the destination as a
+    // correlation token, so that one case is awaited instead.
+    const clickPayload = {
       link_id: link.id,
       ip_hash: ip ? await hashIp(ip) : null,
       city,
@@ -151,7 +155,28 @@ Deno.serve(async (req) => {
       os,
       referrer,
       is_unique: true, // simplified for now — dedup handled by scheduled job
-    }).then(() => {});
+    };
+
+    let clickId = null;
+    if (link.pixel_enabled) {
+      const { data: insertedClick } = await supabase
+        .from('clicks')
+        .insert(clickPayload)
+        .select('id')
+        .single();
+      clickId = insertedClick?.id ?? null;
+    } else {
+      supabase.from('clicks').insert(clickPayload).then(() => {});
+    }
+
+    // appends the pixel correlation token to a destination URL, preserving
+    // any existing query string. Only ever called when pixel_enabled and a
+    // real clickId was captured above.
+    function withPixelToken(url) {
+      if (!clickId) return url;
+      const separator = url.includes('?') ? '&' : '?';
+      return `${url}${separator}_flota=${clickId}`;
+    }
 
     // determine redirect destination
     const destinationType = link.destination_types?.key;
@@ -169,7 +194,7 @@ Deno.serve(async (req) => {
       if (!destinationUrl) {
         return new Response('No destination URL configured', { status: 404 });
       }
-      return Response.redirect(destinationUrl, 302);
+      return Response.redirect(withPixelToken(destinationUrl), 302);
     }
 
     // for raw types — these shouldn't normally hit this endpoint
