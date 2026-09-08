@@ -94,11 +94,22 @@ export default function LinkDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showEditModal, setShowEditModal] = useState(false);
+  const [pixelSaving, setPixelSaving] = useState(false);
+  const [pixelError, setPixelError] = useState('');
 
   useEffect(() => {
     if (!id || !orgId) return;
     loadLink();
   }, [id, orgId]);
+
+  async function handlePixelUpdate(fields) {
+    setPixelSaving(true);
+    setPixelError('');
+    const { error } = await supabase.from('links').update(fields).eq('id', id);
+    setPixelSaving(false);
+    if (error) { setPixelError(error.message); return; }
+    setLink((prev) => ({ ...prev, ...fields }));
+  }
 
   async function loadLink() {
     setLoading(true);
@@ -110,6 +121,10 @@ export default function LinkDetail() {
     *,
     destination_types(id, key, display_name, encoding_mode, supports_funnel, field_schema, group_label),
     campaigns(id, name, corridor),
+    pixel_enabled,
+    pixel_method,
+    pixel_goal_started_url,
+    pixel_goal_completed_url,
     organizations(logo_url, primary_color)
   `)
   .eq('id', id)
@@ -358,6 +373,99 @@ export default function LinkDetail() {
           </div>
         )}
       </div>
+
+      {isRedirect && (
+        <div className="card p-4 mb-4">
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-sm font-medium">Conversion tracking</p>
+            <button
+              onClick={() => handlePixelUpdate({ pixel_enabled: !link.pixel_enabled })}
+              disabled={pixelSaving}
+              className="relative w-9 h-5 rounded-full transition-all shrink-0"
+              style={{ background: link.pixel_enabled ? 'var(--color-brand-blue)' : 'var(--color-border)' }}
+            >
+              <div
+                className="w-3.5 h-3.5 rounded-full bg-white absolute top-0.5 transition-all"
+                style={{ left: link.pixel_enabled ? 18 : 2 }}
+              />
+            </button>
+          </div>
+          <p className="text-xs mb-3" style={{ color: 'var(--color-ink-tertiary)' }}>
+            Adds a tracking token to the destination URL so scans can be matched to signups on your site.
+            Some destinations strip unrecognized URL parameters, and single-page apps that rewrite the URL
+            client-side need to read the token before doing so — test after enabling.
+          </p>
+
+          {link.pixel_enabled && (
+            <div className="pt-3 border-t flex flex-col gap-3" style={{ borderColor: 'var(--color-border)' }}>
+              {pixelError && (
+                <p className="text-xs px-3 py-2 rounded-lg" style={{ background: 'var(--color-danger-bg)', color: 'var(--color-danger-fg)' }}>
+                  {pixelError}
+                </p>
+              )}
+
+              <div>
+                <p className="text-xs font-medium mb-1.5">How should conversions be reported?</p>
+                <div className="flex flex-col gap-1.5">
+                  <label className="flex items-start gap-2 text-xs cursor-pointer">
+                    <input
+                      type="radio"
+                      checked={link.pixel_method === 'js_call'}
+                      onChange={() => handlePixelUpdate({ pixel_method: 'js_call' })}
+                      className="mt-0.5"
+                    />
+                    <span>
+                      <span className="font-medium">Manual JS call</span> — your site calls
+                      <code className="mx-1 px-1 rounded" style={{ background: 'var(--color-canvas)' }}>flota('track', 'signup_started')</code>
+                      at the right moments in your signup flow. Most accurate, needs a developer to add the calls.
+                    </span>
+                  </label>
+                  <label className="flex items-start gap-2 text-xs cursor-pointer">
+                    <input
+                      type="radio"
+                      checked={link.pixel_method === 'goal_url'}
+                      onChange={() => handlePixelUpdate({ pixel_method: 'goal_url' })}
+                      className="mt-0.5"
+                    />
+                    <span>
+                      <span className="font-medium">Goal URL</span> — we watch for visitors reaching specific
+                      URLs on your site (e.g. a "thank you" page). No code needed, but only works if each step
+                      has its own distinct URL.
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              {link.pixel_method === 'goal_url' && (
+                <div className="flex flex-col gap-2">
+                  <div>
+                    <label className="text-xs block mb-1" style={{ color: 'var(--color-ink-secondary)' }}>Signup started URL contains</label>
+                    <input
+                      className="input-field text-xs"
+                      placeholder="/signup"
+                      defaultValue={link.pixel_goal_started_url ?? ''}
+                      onBlur={(e) => handlePixelUpdate({ pixel_goal_started_url: e.target.value.trim() || null })}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs block mb-1" style={{ color: 'var(--color-ink-secondary)' }}>Signup completed URL contains</label>
+                    <input
+                      className="input-field text-xs"
+                      placeholder="/thank-you"
+                      defaultValue={link.pixel_goal_completed_url ?? ''}
+                      onBlur={(e) => handlePixelUpdate({ pixel_goal_completed_url: e.target.value.trim() || null })}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <p className="text-xs" style={{ color: 'var(--color-ink-tertiary)' }}>
+                Make sure the tracking pixel is installed on your site first — see the Integrations page for the embed code.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {isRedirect && (
         <div className="grid gap-4" style={{ gridTemplateColumns: '1fr 1fr 1.4fr' }}>
