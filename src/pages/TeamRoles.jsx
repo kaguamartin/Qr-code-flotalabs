@@ -158,11 +158,32 @@ export default function TeamRoles() {
     }
   }
   async function handleChangeRole(membershipId, newRoleId) {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('memberships')
       .update({ role_id: newRoleId })
-      .eq('id', membershipId);
+      .eq('id', membershipId)
+      .select('id');
     if (error) { setToast({ message: error.message, type: 'error' }); return; }
+    if (!data || data.length === 0) {
+      setToast({ message: "Couldn't update this member's role — you may not have permission.", type: 'error' });
+      return;
+    }
+    await loadAll();
+  }
+
+  async function handleToggleSuspend(member) {
+    const suspending = member.status === 'active';
+    const { data, error } = await supabase
+      .from('memberships')
+      .update({ status: suspending ? 'suspended' : 'active' })
+      .eq('id', member.id)
+      .select('id');
+    if (error) { setToast({ message: error.message, type: 'error' }); return; }
+    if (!data || data.length === 0) {
+      setToast({ message: "Couldn't update this member's access — you may not have permission.", type: 'error' });
+      return;
+    }
+    setToast({ message: suspending ? 'Member suspended.' : 'Member reactivated.', type: 'success' });
     await loadAll();
   }
 
@@ -514,6 +535,17 @@ export default function TeamRoles() {
                             </button>
                           )}
                         </div>
+                      ) : can('team.manage_roles') && m.user_id !== membership?.user_id ? (
+                        <button
+                          onClick={() => handleToggleSuspend(m)}
+                          className="text-xs px-2.5 py-1 rounded-lg border transition-colors hover:bg-[var(--color-canvas)]"
+                          style={{
+                            borderColor: 'var(--color-border)',
+                            color: m.status === 'active' ? 'var(--color-danger-fg)' : 'var(--color-success-fg)',
+                          }}
+                        >
+                          {m.status === 'active' ? 'Suspend' : 'Reactivate'}
+                        </button>
                       ) : (
                         <MoreHorizontal size={16} style={{ color: 'var(--color-ink-secondary)' }} />
                       )}

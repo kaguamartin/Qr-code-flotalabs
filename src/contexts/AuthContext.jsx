@@ -184,6 +184,7 @@ export function AuthProvider({ children }) {
     isSuperAdmin: profile?.is_super_admin ?? false,
     hasOrg: membership?.status === 'active',
     isInvited: membership?.status === 'invited',
+    isSuspended: membership?.status === 'suspended',
     isAssistMode: !!assistOrg,
     assistOrg,
     can,
