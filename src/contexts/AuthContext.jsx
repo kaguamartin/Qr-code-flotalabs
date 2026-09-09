@@ -48,7 +48,7 @@ export function AuthProvider({ children }) {
         .from('memberships')
         .select('*, organizations(*), roles(name, is_locked, role_permissions(enabled, permissions(key)))')
         .eq('user_id', userId)
-        .in('status', ['active', 'invited'])
+        .in('status', ['active', 'invited', 'suspended'])
         .limit(1)
         .maybeSingle(),
     ]);
@@ -64,7 +64,7 @@ export function AuthProvider({ children }) {
       .from('memberships')
       .select('*, organizations(*), roles(name, is_locked, role_permissions(enabled, permissions(key)))')
       .eq('user_id', session.user.id)
-      .in('status', ['active', 'invited'])
+      .in('status', ['active', 'invited', 'suspended'])
       .limit(1)
       .maybeSingle();
     if (!error) setMembership(data);
