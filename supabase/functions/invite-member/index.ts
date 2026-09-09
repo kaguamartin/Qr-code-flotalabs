@@ -85,6 +85,32 @@ Deno.serve(async (req) => {
         });
       }
 
+      // Two genuinely different cases hide behind "existingUser":
+      // (a) someone who already has a real, confirmed account elsewhere on
+      //     the platform, now being added to a new org - they don't need a
+      //     signup email, they'll just see the new workspace next time they
+      //     log in.
+      // (b) someone who was invited before but never confirmed that first
+      //     invite - this is the actual "Resend" case, and calling
+      //     inviteUserByEmail again is the documented way to resend it
+      //     (Supabase: re-inviting an unconfirmed user re-sends the email).
+      // Previously this branch never distinguished the two and never
+      // resent anything - "Resend" always looked successful but only ever
+      // touched a timestamp on the membership row.
+      let emailResent = false;
+      if (!existingUser.email_confirmed_at) {
+        const { error: resendError } = await adminClient.auth.admin.inviteUserByEmail(email, {
+          redirectTo: `${Deno.env.get('APP_URL') ?? 'https://www.flotalabs.co.ke'}/onboarding`,
+          data: { invited_to_org: org_id, invited_role: role_id },
+        });
+        if (resendError) {
+          return new Response(JSON.stringify({ error: resendError.message }), {
+            status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        emailResent = true;
+      }
+
       // add them directly as invited member
       await adminClient.from('memberships').upsert({
   user_id: existingUser.id,
@@ -95,7 +121,7 @@ Deno.serve(async (req) => {
   invited_email: email,
 });
 
-      return new Response(JSON.stringify({ success: true, existing_user: true }), {
+      return new Response(JSON.stringify({ success: true, existing_user: true, email_resent: emailResent }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }

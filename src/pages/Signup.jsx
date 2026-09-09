@@ -1,9 +1,8 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function Signup() {
-  const navigate = useNavigate();
   const { signUp } = useAuth();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -11,6 +10,7 @@ export default function Signup() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -32,8 +32,31 @@ export default function Signup() {
       setError(error.message);
       setLoading(false);
     } else {
-      navigate('/onboarding');
+      // Supabase requires email confirmation before a session is active, so
+      // there's no valid session yet to send them into /onboarding with -
+      // show a confirmation screen instead of navigating.
+      setSubmitted(true);
+      setLoading(false);
     }
+  }
+
+  if (submitted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--color-canvas)' }}>
+        <div className="card p-8 w-full max-w-sm text-center">
+          <div
+            className="w-8 h-8 rounded-lg shrink-0 mx-auto mb-4"
+            style={{ background: 'linear-gradient(135deg, var(--color-brand-purple), var(--color-brand-blue))' }}
+          />
+          <h1 className="text-lg font-medium mb-2">Check your inbox</h1>
+          <p className="text-sm mb-5" style={{ color: 'var(--color-ink-secondary)' }}>
+            We've sent a confirmation link to <span className="font-medium">{email}</span>.
+            Click it to activate your account, then come back and sign in.
+          </p>
+          <Link to="/login" className="btn-secondary w-full justify-center">Back to sign in</Link>
+        </div>
+      </div>
+    );
   }
 
   return (
