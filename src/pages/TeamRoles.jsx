@@ -167,12 +167,21 @@ export default function TeamRoles() {
   }
 
   async function handleCancelInvite(membershipId) {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('memberships')
       .delete()
-      .eq('id', membershipId);
+      .eq('id', membershipId)
+      .select('id');
     setCancelTarget(null);
     if (error) { setToast({ message: error.message, type: 'error' }); return; }
+    if (!data || data.length === 0) {
+      // RLS can silently match zero rows and still return success with no
+      // error - .select() after delete is the only way to tell the two
+      // apart. If we get here, something is blocking this specific delete
+      // at the policy level, not a real client-side bug.
+      setToast({ message: "Couldn't cancel this invite — you may not have permission to remove it.", type: 'error' });
+      return;
+    }
     await loadAll();
   }
 
