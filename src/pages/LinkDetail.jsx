@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ChevronRight, Download, Smartphone, Apple, Bot, Monitor, Loader, ExternalLink } from 'lucide-react';
+import { ChevronRight, Download, Smartphone, Apple, Bot, Monitor, Loader, ExternalLink, Copy, Check } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, CartesianGrid, Tooltip } from 'recharts';
 import { QRCodeSVG } from 'qrcode.react';
 import { TypeChip } from '../components/Shared';
@@ -95,6 +95,13 @@ export default function LinkDetail() {
   const [error, setError] = useState('');
   const [showEditModal, setShowEditModal] = useState(false);
   const [pixelSaving, setPixelSaving] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  function handleCopyLink() {
+    navigator.clipboard.writeText(`${SHORT_LINK_BASE_URL.replace('https://', '')}/${link.short_code}`);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }
   const [pixelError, setPixelError] = useState('');
 
   useEffect(() => {
@@ -261,6 +268,15 @@ export default function LinkDetail() {
             {link.destination_types?.display_name ?? '—'}
           </TypeChip>
           <div className="flex gap-1.5 w-full mt-3.5">
+            {isRedirect && (
+              <button
+                onClick={handleCopyLink}
+                className="btn-secondary flex-1 justify-center text-xs h-8"
+              >
+                {copied ? <Check size={13} /> : <Copy size={13} />}
+                {copied ? 'Copied' : 'Copy'}
+              </button>
+            )}
             <button
               onClick={() => downloadQR(link.short_code)}
               className="btn-secondary flex-1 justify-center text-xs h-8"
