@@ -250,7 +250,13 @@ export default function LinkDetail() {
   } : undefined}
 />
           </div>
-          <p className="font-mono text-sm mb-1.5">{SHORT_LINK_BASE_URL.replace('https://', '')}/{link.short_code}</p>
+          {isRedirect ? (
+            <p className="font-mono text-sm mb-1.5">{SHORT_LINK_BASE_URL.replace('https://', '')}/{link.short_code}</p>
+          ) : (
+            <p className="text-xs mb-1.5" style={{ color: 'var(--color-ink-tertiary)' }}>
+              This QR encodes data directly — no link involved
+            </p>
+          )}
           <TypeChip color={typeColorMap[typeKey] ?? 'blue'}>
             {link.destination_types?.display_name ?? '—'}
           </TypeChip>
@@ -276,53 +282,58 @@ export default function LinkDetail() {
         </div>
 
         <div className="flex flex-col gap-3">
-          <div className="grid grid-cols-4 gap-2.5">
-            <div className="card p-3.5">
-              <p className="text-xs mb-1" style={{ color: 'var(--color-ink-secondary)' }}>Total scans</p>
-              <p className="text-xl font-medium">{totalScans.toLocaleString()}</p>
-            </div>
-            <div className="card p-3.5">
-              <p className="text-xs mb-1" style={{ color: 'var(--color-ink-secondary)' }}>Unique scans</p>
-              <p className="text-xl font-medium">{uniqueScans.toLocaleString()}</p>
-            </div>
-            <div className="card p-3.5">
-              <p className="text-xs mb-1" style={{ color: 'var(--color-ink-secondary)' }}>Conversion</p>
-              <p className="text-xl font-medium">—</p>
-            </div>
-            <div className="card p-3.5">
-              <p className="text-xs mb-1" style={{ color: 'var(--color-ink-secondary)' }}>Peak hour</p>
-              <p className="text-xl font-medium">—</p>
-            </div>
-          </div>
+          {isRedirect ? (
+            <>
+              <div className="grid grid-cols-4 gap-2.5">
+                <div className="card p-3.5">
+                  <p className="text-xs mb-1" style={{ color: 'var(--color-ink-secondary)' }}>Total scans</p>
+                  <p className="text-xl font-medium">{totalScans.toLocaleString()}</p>
+                </div>
+                <div className="card p-3.5">
+                  <p className="text-xs mb-1" style={{ color: 'var(--color-ink-secondary)' }}>Unique scans</p>
+                  <p className="text-xl font-medium">{uniqueScans.toLocaleString()}</p>
+                </div>
+                <div className="card p-3.5">
+                  <p className="text-xs mb-1" style={{ color: 'var(--color-ink-secondary)' }}>Conversion</p>
+                  <p className="text-xl font-medium">—</p>
+                </div>
+                <div className="card p-3.5">
+                  <p className="text-xs mb-1" style={{ color: 'var(--color-ink-secondary)' }}>Peak hour</p>
+                  <p className="text-xl font-medium">—</p>
+                </div>
+              </div>
 
-          <div className="card p-4 flex-1">
-            <p className="text-sm font-medium mb-2">Scans over time</p>
-            {!isRedirect ? (
-              <div className="flex items-center justify-center h-32">
-                <p className="text-xs text-center" style={{ color: 'var(--color-ink-tertiary)' }}>
-                  Raw QR types don't have click-through analytics.
-                </p>
+              <div className="card p-4 flex-1">
+                <p className="text-sm font-medium mb-2">Scans over time</p>
+                {totalScans === 0 ? (
+                  <div className="flex items-center justify-center h-32">
+                    <p className="text-xs text-center" style={{ color: 'var(--color-ink-tertiary)' }}>
+                      No scans yet — share your QR code to start tracking.
+                    </p>
+                  </div>
+                ) : (
+                  <div style={{ height: 130 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={scansByDay} margin={{ left: -20, top: 4 }}>
+                        <CartesianGrid vertical={false} stroke="var(--color-border)" />
+                        <XAxis dataKey="day" tick={{ fontSize: 11, fill: 'var(--color-ink-tertiary)' }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fontSize: 11, fill: 'var(--color-ink-tertiary)' }} axisLine={false} tickLine={false} width={36} />
+                        <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid var(--color-border)' }} />
+                        <Bar dataKey="scans" fill="var(--color-brand-blue)" radius={[4, 4, 0, 0]} maxBarSize={28} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
               </div>
-            ) : totalScans === 0 ? (
-              <div className="flex items-center justify-center h-32">
-                <p className="text-xs text-center" style={{ color: 'var(--color-ink-tertiary)' }}>
-                  No scans yet — share your QR code to start tracking.
-                </p>
-              </div>
-            ) : (
-              <div style={{ height: 130 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={scansByDay} margin={{ left: -20, top: 4 }}>
-                    <CartesianGrid vertical={false} stroke="var(--color-border)" />
-                    <XAxis dataKey="day" tick={{ fontSize: 11, fill: 'var(--color-ink-tertiary)' }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 11, fill: 'var(--color-ink-tertiary)' }} axisLine={false} tickLine={false} width={36} />
-                    <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid var(--color-border)' }} />
-                    <Bar dataKey="scans" fill="var(--color-brand-blue)" radius={[4, 4, 0, 0]} maxBarSize={28} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </div>
+            </>
+          ) : (
+            <div className="card p-4 flex-1 flex items-center justify-center">
+              <p className="text-xs text-center max-w-xs" style={{ color: 'var(--color-ink-tertiary)' }}>
+                This QR code's data is read directly off the code by the phone — it never contacts Flota Labs' servers,
+                so there's nothing to log or track for {link.destination_types?.display_name} QR codes.
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -534,15 +545,6 @@ export default function LinkDetail() {
               </div>
             )}
           </div>
-        </div>
-      )}
-
-      {!isRedirect && (
-        <div className="card p-4">
-          <p className="text-sm font-medium mb-1">Analytics not available</p>
-          <p className="text-xs" style={{ color: 'var(--color-ink-secondary)' }}>
-            This QR code encodes data directly — the phone handles it natively without going through Flota Labs servers, so scan events can't be tracked. This is expected behaviour for {link.destination_types?.display_name} QR codes.
-          </p>
         </div>
       )}
 

@@ -164,9 +164,23 @@ export default function LinkCreate() {
       ? { ...fieldValues, platform: selectedPlatform?.key }
       : fieldValues;
 
-    const shortCode = activeType?.encoding_mode === 'redirect'
+    let shortCode = activeType?.encoding_mode === 'redirect'
       ? `${orgSlug}-${shortCodeSuffix}`.trim()
-      : `${orgSlug}-${activeType.key}-${Date.now()}`;
+      : `${orgSlug}-${activeType.key}`;
+
+    if (activeType?.encoding_mode !== 'redirect') {
+      // raw types don't collect a suffix from the user, so check for a
+      // collision and only append a short random suffix if actually needed -
+      // same pattern already used for bio page short codes.
+      const { data: existing } = await supabase
+        .from('links')
+        .select('id')
+        .eq('short_code', shortCode)
+        .maybeSingle();
+      if (existing) {
+        shortCode = `${orgSlug}-${activeType.key}-${Math.floor(Math.random() * 900 + 100)}`;
+      }
+    }
 
     const { error: linkError } = await supabase
       .from('links')
