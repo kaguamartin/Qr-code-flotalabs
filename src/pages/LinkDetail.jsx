@@ -184,6 +184,22 @@ export default function LinkDetail() {
   const totalScans = clicks.length;
   const uniqueScans = clicks.filter((c) => c.is_unique).length;
 
+  const peakHour = (() => {
+    if (clicks.length === 0) return null;
+    const hourCounts = new Array(24).fill(0);
+    clicks.forEach((c) => {
+      const hour = new Date(c.occurred_at).getHours();
+      hourCounts[hour]++;
+    });
+    const topHour = hourCounts.indexOf(Math.max(...hourCounts));
+    const formatHour = (h) => {
+      const period = h < 12 ? 'AM' : 'PM';
+      const display = h % 12 === 0 ? 12 : h % 12;
+      return `${display}${period}`;
+    };
+    return `${formatHour(topHour)}–${formatHour((topHour + 1) % 24)}`;
+  })();
+
   const last7Days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - (6 - i));
@@ -315,7 +331,7 @@ export default function LinkDetail() {
                 </div>
                 <div className="card p-3.5">
                   <p className="text-xs mb-1" style={{ color: 'var(--color-ink-secondary)' }}>Peak hour</p>
-                  <p className="text-xl font-medium">—</p>
+                  <p className="text-xl font-medium">{peakHour ?? '—'}</p>
                 </div>
               </div>
 
