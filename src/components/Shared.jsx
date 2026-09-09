@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import * as Icons from 'lucide-react';
 
 export function StatCard({ label, value, sublabel, trend }) {
@@ -44,6 +45,34 @@ export function TypeChip({ color, children }) {
     >
       {children}
     </span>
+  );
+}
+
+// Reusable toast notification, replacing native alert()/confirm() popups
+// which look like a raw browser dialog instead of part of the app. Usage
+// pattern in a page: const [toast, setToast] = useState(null); render
+// {toast && <Toast {...toast} onDismiss={() => setToast(null)} />}; then
+// setToast({ message: '...', type: 'error' }) instead of alert(...).
+// Auto-dismisses after 4s; also dismissible by click.
+export function Toast({ message, type = 'error', onDismiss }) {
+  useEffect(() => {
+    const t = setTimeout(onDismiss, 4000);
+    return () => clearTimeout(t);
+  }, [onDismiss]);
+
+  const isError = type === 'error';
+  return (
+    <div
+      className="fixed bottom-5 right-5 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg max-w-sm cursor-pointer"
+      style={{
+        background: isError ? 'var(--color-danger-fg)' : 'var(--color-ink-primary)',
+        color: 'white',
+      }}
+      onClick={onDismiss}
+    >
+      {isError ? <Icons.AlertCircle size={16} className="shrink-0" /> : <Icons.CheckCircle size={16} className="shrink-0" />}
+      <p className="text-sm">{message}</p>
+    </div>
   );
 }
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { UserPlus, Plus, MoreHorizontal, X } from 'lucide-react';
-import { StatusBadge, ConfirmDialog } from '../components/Shared';
+import { StatusBadge, ConfirmDialog, Toast } from '../components/Shared';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 
@@ -24,6 +24,7 @@ export default function TeamRoles() {
   const [members, setMembers] = useState([]);
   const [roles, setRoles] = useState([]);
   const [cancelTarget, setCancelTarget] = useState(null);
+  const [toast, setToast] = useState(null);
   const [permissions, setPermissions] = useState([]);
   const [activeRoleId, setActiveRoleId] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -161,7 +162,7 @@ export default function TeamRoles() {
       .from('memberships')
       .update({ role_id: newRoleId })
       .eq('id', membershipId);
-    if (error) { alert(error.message); return; }
+    if (error) { setToast({ message: error.message, type: 'error' }); return; }
     await loadAll();
   }
 
@@ -171,7 +172,7 @@ export default function TeamRoles() {
       .delete()
       .eq('id', membershipId);
     setCancelTarget(null);
-    if (error) { alert(error.message); return; }
+    if (error) { setToast({ message: error.message, type: 'error' }); return; }
     await loadAll();
   }
 
@@ -196,9 +197,14 @@ export default function TeamRoles() {
     );
     const result = await response.json();
     if (response.ok) {
-      alert(`Invite resent to ${email}.`);
+      setToast({
+        message: result.email_resent === false
+          ? `${email} already has an account — added to this workspace, no new email needed.`
+          : `Invite resent to ${email}.`,
+        type: 'success',
+      });
     } else {
-      alert(result.error ?? 'Failed to resend invite.');
+      setToast({ message: result.error ?? 'Failed to resend invite.', type: 'error' });
     }
   }
 
@@ -608,6 +614,8 @@ export default function TeamRoles() {
           onCancel={() => setCancelTarget(null)}
         />
       )}
+
+      {toast && <Toast {...toast} onDismiss={() => setToast(null)} />}
     </div>
   );
 }
