@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import * as Icons from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useAuth } from '../contexts/AuthContext';
@@ -735,6 +736,13 @@ export default function BioBuilder() {
                     <p className="text-sm font-medium">{l.clicks?.[0]?.count ?? 0}</p>
                     <p className="text-[11px]" style={{ color: 'var(--color-ink-tertiary)' }}>scans</p>
                   </div>
+                  <Link
+                    to={`/app/links/${l.id}`}
+                    onClick={(e) => e.stopPropagation()}
+                    title="View scans & analytics"
+                  >
+                    <Icons.BarChart3 size={15} style={{ color: 'var(--color-ink-tertiary)' }} />
+                  </Link>
                   {can('links.delete') && (
                     listFilter === 'active' ? (
                       <button
@@ -789,14 +797,25 @@ export default function BioBuilder() {
       {/* header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <button
-            onClick={() => setView('list')}
-            className="text-xs flex items-center gap-1 mb-1.5"
-            style={{ color: 'var(--color-ink-secondary)' }}
-          >
-            <Icons.ChevronLeft size={13} /> All bio pages
-          </button>
-          <h1 className="text-lg font-medium">{bioPage?.title || 'Link-in-bio'}</h1>
+          <div className="flex items-center gap-3 mb-1.5">
+            <button
+              onClick={() => setView('list')}
+              className="text-xs flex items-center gap-1"
+              style={{ color: 'var(--color-ink-secondary)' }}
+            >
+              <Icons.ChevronLeft size={13} /> All bio pages
+            </button>
+            {selectedLink && (
+              <Link
+                to={`/app/links/${selectedLink.id}`}
+                className="text-xs flex items-center gap-1"
+                style={{ color: 'var(--color-ink-secondary)' }}
+              >
+                <Icons.BarChart3 size={13} /> View scans & analytics
+              </Link>
+            )}
+          </div>
+          <h1 className="text-lg font-medium">{bioPage?.header_title || 'Link-in-bio'}</h1>
           <p className="text-sm font-mono mt-0.5" style={{ color: 'var(--color-ink-secondary)' }}>
             {SHORT_LINK_BASE_URL.replace('https://', '')}/p/{selectedLink?.short_code}
           </p>
