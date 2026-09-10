@@ -463,6 +463,7 @@ export default function BioBuilder() {
 
   async function loadBioLinks() {
     setLoading(true);
+    setError('');
     let query = supabase
       .from('links')
       .select(`
@@ -471,7 +472,7 @@ export default function BioBuilder() {
         archived_at,
         created_at,
         destination_types!inner(key),
-        bio_pages(title, subtitle, bio_page_blocks(count)),
+        bio_pages(header_title, header_subtitle, bio_page_blocks(count)),
         clicks(count)
       `)
       .eq('org_id', orgId)
@@ -669,6 +670,12 @@ export default function BioBuilder() {
           )}
         </div>
 
+        {error && (
+          <p className="text-xs mb-4 px-3 py-2 rounded-lg" style={{ background: 'var(--color-danger-bg)', color: 'var(--color-danger-fg)' }}>
+            {error}
+          </p>
+        )}
+
         <div className="flex rounded-lg p-0.5 mb-4 w-fit" style={{ background: 'var(--color-canvas)' }}>
           {['active', 'archived'].map((v) => (
             <button
@@ -714,7 +721,7 @@ export default function BioBuilder() {
                 className="card p-4 flex items-center justify-between cursor-pointer hover:bg-[var(--color-canvas)] transition-colors"
               >
                 <div className="min-w-0">
-                  <p className="text-sm font-medium truncate">{l.bio_pages?.[0]?.title || l.short_code}</p>
+                  <p className="text-sm font-medium truncate">{l.bio_pages?.[0]?.header_title || l.short_code}</p>
                   <p className="text-xs font-mono mt-0.5" style={{ color: 'var(--color-ink-secondary)' }}>
                     {SHORT_LINK_BASE_URL.replace('https://', '')}/{l.short_code}
                   </p>
