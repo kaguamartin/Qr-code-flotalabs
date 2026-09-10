@@ -426,6 +426,9 @@ export default function BioBuilder() {
 
   const [bioLinks, setBioLinks] = useState([]);
   const [selectedLinkId, setSelectedLinkId] = useState('');
+  const [view, setView] = useState('list'); // 'list' | 'editor'
+  const [listFilter, setListFilter] = useState('active'); // 'active' | 'archived'
+  const [confirmArchiveLink, setConfirmArchiveLink] = useState(null);
   const [bioPage, setBioPage] = useState(null);
   const [blocks, setBlocks] = useState([]);
   const [socialPlatforms, setSocialPlatforms] = useState([]);
@@ -446,12 +449,12 @@ export default function BioBuilder() {
     if (!orgId) return;
     loadBioLinks();
     loadSocialPlatforms();
-  }, [orgId]);
+  }, [orgId, listFilter]);
 
   useEffect(() => {
-    if (!selectedLinkId) return;
+    if (!selectedLinkId || view !== 'editor') return;
     loadBioPage(selectedLinkId);
-  }, [selectedLinkId]);
+  }, [selectedLinkId, view]);
 
   async function loadSocialPlatforms() {
     const { data } = await supabase.from('social_platforms').select('*').order('sort_order');
@@ -460,18 +463,47 @@ export default function BioBuilder() {
 
   async function loadBioLinks() {
     setLoading(true);
-    const { data, error } = await supabase
+    let query = supabase
       .from('links')
-      .select('id, short_code, destination_types!inner(key)')
+      .select(`
+        id,
+        short_code,
+        archived_at,
+        created_at,
+        destination_types!inner(key),
+        bio_pages(title, subtitle, bio_page_blocks(count)),
+        clicks(count)
+      `)
       .eq('org_id', orgId)
       .eq('destination_types.key', 'bio_page')
-      .is('archived_at', null)
       .order('created_at', { ascending: false });
+
+    query = listFilter === 'active' ? query.is('archived_at', null) : query.not('archived_at', 'is', null);
+
+    const { data, error } = await query;
 
     if (error) { setError(error.message); setLoading(false); return; }
     setBioLinks(data ?? []);
-    if (data?.length > 0) setSelectedLinkId(data[0].id);
-    else setLoading(false);
+    setLoading(false);
+  }
+
+  async function handleArchiveBioLink(link) {
+    const { error } = await supabase
+      .from('links')
+      .update({ archived_at: new Date().toISOString() })
+      .eq('id', link.id);
+    setConfirmArchiveLink(null);
+    if (error) { setError(error.message); return; }
+    await loadBioLinks();
+  }
+
+  async function handleRestoreBioLink(link) {
+    const { error } = await supabase
+      .from('links')
+      .update({ archived_at: null })
+      .eq('id', link.id);
+    if (error) { setError(error.message); return; }
+    await loadBioLinks();
   }
 
   async function loadBioPage(linkId) {
@@ -587,6 +619,7 @@ export default function BioBuilder() {
     setShowNewPageModal(false);
     await loadBioLinks();
     setSelectedLinkId(newLinkId);
+    setView('editor');
   }
 
   const selectedLink = bioLinks.find((l) => l.id === selectedLinkId);
@@ -600,19 +633,19 @@ export default function BioBuilder() {
     );
   }
 
-  if (bioLinks.length === 0) {
+  if (view === 'list') {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-center">
-        <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'var(--color-canvas)' }}>
-          <Icons.ListTree size={22} style={{ color: 'var(--color-ink-tertiary)' }} />
-        </div>
-        <p className="text-sm font-medium mb-1">No link-in-bio pages yet</p>
-        <p className="text-xs mb-4" style={{ color: 'var(--color-ink-secondary)' }}>
-          Create your first bio page to get started.
-        </p>
-        <button onClick={() => setShowNewPageModal(true)} className="btn-primary text-sm">
-          <Icons.Plus size={15} /> Create bio page
-        </button>
+      <div>
+        {confirmArchiveLink && (
+          <ConfirmDialog
+            title="Archive this bio page?"
+            message="It will stop being accessible to visitors. You can restore it later from the Archived tab."
+            confirmLabel="Archive"
+            danger
+            onConfirm={() => handleArchiveBioLink(confirmArchiveLink)}
+            onCancel={() => setConfirmArchiveLink(null)}
+          />
+        )}
         {showNewPageModal && (
           <NewBioPageModal
             orgId={orgId}
@@ -620,6 +653,104 @@ export default function BioBuilder() {
             onCreated={handleNewPageCreated}
             onClose={() => setShowNewPageModal(false)}
           />
+        )}
+
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-lg font-medium">Link-in-bio</h1>
+            <p className="text-sm" style={{ color: 'var(--color-ink-secondary)' }}>
+              {bioLinks.length} {bioLinks.length === 1 ? 'page' : 'pages'} {listFilter === 'archived' ? 'archived' : ''}
+            </p>
+          </div>
+          {can('links.create') && (
+            <button onClick={() => setShowNewPageModal(true)} className="btn-primary">
+              <Icons.Plus size={16} /> New page
+            </button>
+          )}
+        </div>
+
+        <div className="flex rounded-lg p-0.5 mb-4 w-fit" style={{ background: 'var(--color-canvas)' }}>
+          {['active', 'archived'].map((v) => (
+            <button
+              key={v}
+              onClick={() => setListFilter(v)}
+              className="text-xs px-3 py-1.5 rounded-md font-medium capitalize transition-all"
+              style={{
+                background: listFilter === v ? 'var(--color-surface)' : 'transparent',
+                color: listFilter === v ? 'var(--color-ink-primary)' : 'var(--color-ink-tertiary)',
+                boxShadow: listFilter === v ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+              }}
+            >
+              {v}
+            </button>
+          ))}
+        </div>
+
+        {bioLinks.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'var(--color-canvas)' }}>
+              <Icons.ListTree size={22} style={{ color: 'var(--color-ink-tertiary)' }} />
+            </div>
+            <p className="text-sm font-medium mb-1">
+              {listFilter === 'archived' ? 'No archived bio pages' : 'No link-in-bio pages yet'}
+            </p>
+            {listFilter === 'active' && (
+              <>
+                <p className="text-xs mb-4" style={{ color: 'var(--color-ink-secondary)' }}>
+                  Create your first bio page to get started.
+                </p>
+                <button onClick={() => setShowNewPageModal(true)} className="btn-primary text-sm">
+                  <Icons.Plus size={15} /> Create bio page
+                </button>
+              </>
+            )}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2.5">
+            {bioLinks.map((l) => (
+              <div
+                key={l.id}
+                onClick={() => { setSelectedLinkId(l.id); setView('editor'); }}
+                className="card p-4 flex items-center justify-between cursor-pointer hover:bg-[var(--color-canvas)] transition-colors"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">{l.bio_pages?.[0]?.title || l.short_code}</p>
+                  <p className="text-xs font-mono mt-0.5" style={{ color: 'var(--color-ink-secondary)' }}>
+                    {SHORT_LINK_BASE_URL.replace('https://', '')}/{l.short_code}
+                  </p>
+                </div>
+                <div className="flex items-center gap-5 shrink-0 ml-4">
+                  <div className="text-right">
+                    <p className="text-sm font-medium">{l.bio_pages?.[0]?.bio_page_blocks?.[0]?.count ?? 0}</p>
+                    <p className="text-[11px]" style={{ color: 'var(--color-ink-tertiary)' }}>buttons</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium">{l.clicks?.[0]?.count ?? 0}</p>
+                    <p className="text-[11px]" style={{ color: 'var(--color-ink-tertiary)' }}>scans</p>
+                  </div>
+                  {can('links.delete') && (
+                    listFilter === 'active' ? (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setConfirmArchiveLink(l); }}
+                        title="Archive"
+                      >
+                        <Icons.Archive size={15} style={{ color: 'var(--color-ink-tertiary)' }} />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleRestoreBioLink(l); }}
+                        className="flex items-center gap-1 text-xs"
+                        style={{ color: 'var(--color-brand-blue)' }}
+                      >
+                        <Icons.RotateCcw size={13} /> Restore
+                      </button>
+                    )
+                  )}
+                  <Icons.ChevronRight size={16} style={{ color: 'var(--color-ink-tertiary)' }} />
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
     );
@@ -647,43 +778,21 @@ export default function BioBuilder() {
         />
       )}
       {showQRModal && selectedLink && <QRModal shortCode={selectedLink.short_code} onClose={() => setShowQRModal(false)} />}
-      {showNewPageModal && (
-        <NewBioPageModal
-          orgId={orgId}
-          orgSlug={orgSlug}
-          onCreated={handleNewPageCreated}
-          onClose={() => setShowNewPageModal(false)}
-        />
-      )}
 
       {/* header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-lg font-medium">Link-in-bio</h1>
-          <div className="flex items-center gap-2 mt-0.5">
-            {bioLinks.length > 1 ? (
-              <select
-                className="input-field w-auto font-mono text-xs"
-                value={selectedLinkId}
-                onChange={(e) => setSelectedLinkId(e.target.value)}
-              >
-                {bioLinks.map((l) => (
-                  <option key={l.id} value={l.id}>{SHORT_LINK_BASE_URL.replace('https://', '')}/p/{l.short_code}</option>
-                ))}
-              </select>
-            ) : (
-              <p className="text-sm font-mono" style={{ color: 'var(--color-ink-secondary)' }}>
-                {SHORT_LINK_BASE_URL.replace('https://', '')}/p/{selectedLink?.short_code}
-              </p>
-            )}
-            <button
-  onClick={() => setShowNewPageModal(true)}
-  className="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all active:scale-95"
-  style={{ background: 'var(--color-brand-blue)', color: 'white' }}
->
-  <Icons.Plus size={12} /> New page
-</button>
-          </div>
+          <button
+            onClick={() => setView('list')}
+            className="text-xs flex items-center gap-1 mb-1.5"
+            style={{ color: 'var(--color-ink-secondary)' }}
+          >
+            <Icons.ChevronLeft size={13} /> All bio pages
+          </button>
+          <h1 className="text-lg font-medium">{bioPage?.title || 'Link-in-bio'}</h1>
+          <p className="text-sm font-mono mt-0.5" style={{ color: 'var(--color-ink-secondary)' }}>
+            {SHORT_LINK_BASE_URL.replace('https://', '')}/p/{selectedLink?.short_code}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           {saveSuccess && (
