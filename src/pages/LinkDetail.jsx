@@ -69,6 +69,7 @@ function getDestinationUrl(link) {
   const key = link.destination_types?.key;
   const data = link.destination_data ?? {};
   if (key === 'bio_page') return `${SHORT_LINK_BASE_URL}/p/${link.short_code}`;
+  if (key === 'digital_vcard') return `${SHORT_LINK_BASE_URL}/c/${link.short_code}`;
   if (mode === 'redirect') return data.url ?? data.android_url ?? data.ios_url ?? null;
   return null;
 }

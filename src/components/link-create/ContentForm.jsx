@@ -2,6 +2,7 @@ import { useState } from 'react';
 import * as Icons from 'lucide-react';
 import { groupIcon, groupColor, noFunnelNote, corridors } from './linkCreateHelpers';
 import { SHORT_LINK_BASE_URL } from '../../config';
+import { supabase } from '../../lib/supabaseClient';
 
 export default function ContentForm({
   activeType,
@@ -26,6 +27,42 @@ export default function ContentForm({
   editMode = false,
 }) {
   const [showPassword, setShowPassword] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photoError, setPhotoError] = useState('');
+
+  async function handlePhotoUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      setPhotoError('Image must be under 2MB.');
+      return;
+    }
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (!['jpg', 'jpeg', 'png', 'webp'].includes(ext)) {
+      setPhotoError('Only JPG, PNG or WebP images are supported.');
+      return;
+    }
+
+    setUploadingPhoto(true);
+    setPhotoError('');
+
+    // No link exists yet at creation time, so this can't be keyed to a link
+    // id the way org logos are keyed to org.id - a random filename avoids
+    // collisions, and the resulting URL just becomes a normal string in
+    // destination_data.photo_url like any other field once the link saves.
+    const fileName = `vcard-${crypto.randomUUID()}.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(fileName, file, { upsert: true });
+
+    if (uploadError) { setPhotoError(uploadError.message); setUploadingPhoto(false); return; }
+
+    const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(fileName);
+    onFieldChange('photo_url', urlData.publicUrl);
+    setUploadingPhoto(false);
+  }
   const fields = activeType?.field_schema ?? [];
   const color = groupColor(activeType?.group_label ?? '');
 
@@ -130,11 +167,11 @@ export default function ContentForm({
       {/* regular destination fields */}
       {activeType?.key !== 'social' && activeType?.key !== 'bio_page' && (
         <div className="flex flex-col gap-4 mb-4">
-          {fields.map((f) => {
-            const isOptional = f.key === 'ios_url' || f.key === 'subject' || f.key === 'company';
+          {fields.filter((f) => f.key !== 'photo_url').map((f) => {
+            const isOptional = f.key === 'ios_url' || f.key === 'subject' || f.key === 'company' || f.key === 'job_title' || f.key === 'website' || f.key === 'email';
             const isPhone = f.key === 'phone';
-            const isUrl = f.key === 'url' || f.key === 'android_url' || f.key === 'ios_url';
-            const isEmail = f.key === 'to';
+            const isUrl = f.key === 'url' || f.key === 'android_url' || f.key === 'ios_url' || f.key === 'website';
+            const isEmail = f.key === 'to' || f.key === 'email';
             const isPassword = f.key === 'password';
             const isDatetime = f.key === 'event_date';
             const inputType = isUrl ? 'url' : isPhone ? 'tel' : isEmail ? 'email' : isDatetime ? 'datetime-local' : isPassword ? (showPassword ? 'text' : 'password') : 'text';
@@ -184,6 +221,30 @@ export default function ContentForm({
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* photo upload — digital vCard only */}
+      {fields.some((f) => f.key === 'photo_url') && (
+        <div className="mb-4">
+          <label className="text-xs block mb-1.5" style={{ color: 'var(--color-ink-secondary)' }}>
+            Photo <span className="ml-1" style={{ color: 'var(--color-ink-tertiary)' }}>(optional)</span>
+          </label>
+          <div className="flex items-center gap-3">
+            {fieldValues.photo_url && (
+              <img src={fieldValues.photo_url} alt="" className="w-12 h-12 rounded-full object-cover" />
+            )}
+            <label className="btn-secondary text-xs cursor-pointer">
+              {uploadingPhoto ? <Icons.Loader size={13} className="animate-spin" /> : <Icons.Upload size={13} />}
+              {uploadingPhoto ? 'Uploading...' : fieldValues.photo_url ? 'Change photo' : 'Upload photo'}
+              <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handlePhotoUpload} disabled={uploadingPhoto} className="hidden" />
+            </label>
+          </div>
+          {photoError && (
+            <p className="text-xs mt-1 flex items-center gap-1" style={{ color: 'var(--color-danger-fg)' }}>
+              <Icons.AlertCircle size={11} /> {photoError}
+            </p>
+          )}
         </div>
       )}
 
