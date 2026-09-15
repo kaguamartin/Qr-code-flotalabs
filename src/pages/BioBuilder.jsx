@@ -722,14 +722,14 @@ export default function BioBuilder() {
                 className="card p-4 flex items-center justify-between cursor-pointer hover:bg-[var(--color-canvas)] transition-colors"
               >
                 <div className="min-w-0">
-                  <p className="text-sm font-medium truncate">{l.bio_pages?.[0]?.header_title || l.short_code}</p>
+                  <p className="text-sm font-medium truncate">{l.bio_pages?.header_title || l.short_code}</p>
                   <p className="text-xs font-mono mt-0.5" style={{ color: 'var(--color-ink-secondary)' }}>
                     {SHORT_LINK_BASE_URL.replace('https://', '')}/{l.short_code}
                   </p>
                 </div>
                 <div className="flex items-center gap-5 shrink-0 ml-4">
                   <div className="text-right">
-                    <p className="text-sm font-medium">{l.bio_pages?.[0]?.bio_page_blocks?.[0]?.count ?? 0}</p>
+                    <p className="text-sm font-medium">{l.bio_pages?.bio_page_blocks?.[0]?.count ?? 0}</p>
                     <p className="text-[11px]" style={{ color: 'var(--color-ink-tertiary)' }}>buttons</p>
                   </div>
                   <div className="text-right">
