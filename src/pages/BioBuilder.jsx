@@ -665,7 +665,7 @@ export default function BioBuilder() {
             </p>
           </div>
           {can('links.create') && (
-            <button onClick={() => setShowNewPageModal(true)} className="btn-primary">
+            <button onClick={() => setShowNewPageModal(true)} className="btn-primary active:scale-95 transition-transform">
               <Icons.Plus size={16} /> New page
             </button>
           )}

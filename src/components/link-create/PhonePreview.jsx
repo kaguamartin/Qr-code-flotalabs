@@ -31,7 +31,7 @@ export default function PhonePreview({
     }
 
     if (step === 3) {
-  const hasValidQr = qrValue && qrValue.length > 10;
+  const hasValidQr = qrValue && qrValue.length > 0;
   return (
     <div className="flex flex-col items-center justify-center h-full gap-3 px-4">
       <div className="w-8 h-8 rounded-lg" style={{ background: 'linear-gradient(135deg, var(--color-brand-purple), var(--color-brand-blue))' }} />

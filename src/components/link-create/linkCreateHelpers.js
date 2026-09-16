@@ -35,25 +35,34 @@ export function groupColor(label) {
 export function getRawQrValue({ activeType, fieldValues, orgSlug, shortCodeSuffix }) {
   if (!activeType) return '';
   if (activeType.encoding_mode === 'redirect') {
+    if (!shortCodeSuffix?.trim()) return '';
     return `${SHORT_LINK_BASE_URL}/${orgSlug}-${shortCodeSuffix}`;
   }
   switch (activeType.key) {
     case 'wifi':
+      if (!fieldValues.ssid?.trim()) return '';
       return `WIFI:T:WPA;S:${fieldValues.ssid ?? ''};P:${fieldValues.password ?? ''};;`;
     case 'call':
     case 'save_number':
+      if (!fieldValues.phone?.trim()) return '';
       return `tel:${fieldValues.phone ?? ''}`;
     case 'sms':
+      if (!fieldValues.phone?.trim()) return '';
       return `smsto:${fieldValues.phone ?? ''}`;
     case 'email':
+      if (!fieldValues.to?.trim()) return '';
       return `mailto:${fieldValues.to ?? ''}${fieldValues.subject ? `?subject=${encodeURIComponent(fieldValues.subject)}` : ''}`;
     case 'map':
+      if (!fieldValues.address?.trim()) return '';
       return `geo:0,0?q=${encodeURIComponent(fieldValues.address ?? '')}`;
     case 'vcard':
+      if (!fieldValues.name?.trim()) return '';
       return `BEGIN:VCARD\nVERSION:3.0\nFN:${fieldValues.name ?? ''}\nTEL:${fieldValues.phone ?? ''}\nORG:${fieldValues.company ?? ''}\nEND:VCARD`;
     case 'calendar':
+      if (!fieldValues.event_title?.trim()) return '';
       return `BEGIN:VEVENT\nSUMMARY:${fieldValues.event_title ?? ''}\nDTSTART:${(fieldValues.event_date ?? '').replace(/[-:]/g, '').slice(0, 15)}\nEND:VEVENT`;
     default:
+      if (!shortCodeSuffix?.trim()) return '';
       return `${SHORT_LINK_BASE_URL}/${orgSlug}-${shortCodeSuffix}`;
   }
 }
