@@ -3,6 +3,33 @@ import * as Icons from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 import { SHORT_LINK_BASE_URL } from '../config';
+import { BRAND_ICONS } from './brandIcons';
+
+// Renders a provider's real brand mark in its own official color when we
+// have verified data for it (see brandIcons.js) - brand guidelines
+// generally prohibit recoloring a logo, so these are NOT tinted to match
+// Flota's category-color system the way the lucide fallback icons are.
+// Falls back to the generic lucide icon + category tint for anything
+// without verified brand data yet (currently: Slack, and Flota's own pixel,
+// which has no such restriction since it's Flota's own mark).
+function BrandIcon({ provider, meta, size = 16 }) {
+  const brand = BRAND_ICONS[provider];
+  if (brand) {
+    return (
+      <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--color-canvas)' }}>
+        <svg width={size} height={size} viewBox="0 0 24 24" fill={brand.hex}>
+          <path d={brand.path} />
+        </svg>
+      </div>
+    );
+  }
+  const Icon = Icons[meta?.icon] ?? Icons.Plug;
+  return (
+    <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--color-type-' + (meta?.color ?? 'blue') + '-bg)' }}>
+      <Icon size={size} style={{ color: 'var(--color-type-' + (meta?.color ?? 'blue') + '-fg)' }} />
+    </div>
+  );
+}
 
 const INTEGRATION_META = {
   tracking_pixel: {
@@ -100,14 +127,7 @@ function SetupModal({ provider, integration, onClose, onSave }) {
       <div className="card p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2.5">
-            {(() => {
-              const Icon = Icons[meta?.icon] ?? Icons.Plug;
-              return (
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--color-type-' + (meta.color ?? 'blue') + '-bg)' }}>
-                  <Icon size={16} style={{ color: 'var(--color-type-' + (meta.color ?? 'blue') + '-fg)' }} />
-                </div>
-              );
-            })()}
+            <BrandIcon provider={provider} meta={meta} />
             <p className="text-sm font-medium">{meta?.name}</p>
           </div>
           <button onClick={onClose} style={{ color: 'var(--color-ink-tertiary)' }}><Icons.X size={16} /></button>
@@ -179,16 +199,13 @@ function SetupModal({ provider, integration, onClose, onSave }) {
 function IntegrationCard({ provider, integration, onConnect, onDisconnect }) {
   const meta = INTEGRATION_META[provider];
   if (!meta) return null;
-  const Icon = Icons[meta.icon] ?? Icons.Plug;
   const connected = integration?.status === 'connected';
 
   return (
     <div className="card p-4">
       <div className="flex justify-between items-start mb-2">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--color-type-' + (meta.color ?? 'blue') + '-bg)' }}>
-  <Icon size={16} style={{ color: 'var(--color-type-' + (meta.color ?? 'blue') + '-fg)' }} />
-</div>
+          <BrandIcon provider={provider} meta={meta} />
           <p className="text-sm font-medium">{meta.name}</p>
         </div>
         {meta.comingSoon ? (
