@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { UserPlus, Plus, MoreHorizontal, X } from 'lucide-react';
+import { UserPlus, Plus, MoreHorizontal, X, Pencil, Check } from 'lucide-react';
 import { StatusBadge, ConfirmDialog, Toast } from '../components/Shared';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
@@ -24,6 +24,9 @@ export default function TeamRoles() {
   const [members, setMembers] = useState([]);
   const [roles, setRoles] = useState([]);
   const [cancelTarget, setCancelTarget] = useState(null);
+  const [editingRoleId, setEditingRoleId] = useState(null);
+  const [editingRoleName, setEditingRoleName] = useState('');
+  const [deleteRoleTarget, setDeleteRoleTarget] = useState(null);
   const [toast, setToast] = useState(null);
   const [permissions, setPermissions] = useState([]);
   const [activeRoleId, setActiveRoleId] = useState(null);
@@ -158,32 +161,11 @@ export default function TeamRoles() {
     }
   }
   async function handleChangeRole(membershipId, newRoleId) {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('memberships')
       .update({ role_id: newRoleId })
-      .eq('id', membershipId)
-      .select('id');
+      .eq('id', membershipId);
     if (error) { setToast({ message: error.message, type: 'error' }); return; }
-    if (!data || data.length === 0) {
-      setToast({ message: "Couldn't update this member's role — you may not have permission.", type: 'error' });
-      return;
-    }
-    await loadAll();
-  }
-
-  async function handleToggleSuspend(member) {
-    const suspending = member.status === 'active';
-    const { data, error } = await supabase
-      .from('memberships')
-      .update({ status: suspending ? 'suspended' : 'active' })
-      .eq('id', member.id)
-      .select('id');
-    if (error) { setToast({ message: error.message, type: 'error' }); return; }
-    if (!data || data.length === 0) {
-      setToast({ message: "Couldn't update this member's access — you may not have permission.", type: 'error' });
-      return;
-    }
-    setToast({ message: suspending ? 'Member suspended.' : 'Member reactivated.', type: 'success' });
     await loadAll();
   }
 
@@ -270,9 +252,40 @@ export default function TeamRoles() {
   async function handleDeleteRole(roleId) {
     const role = roles.find((r) => r.id === roleId);
     if (!role || role.is_locked) return;
-    if (!confirm(`Delete role "${role.name}"? Members with this role will need to be reassigned.`)) return;
+    setDeleteRoleTarget(role);
+  }
 
-    await supabase.from('roles').delete().eq('id', roleId);
+  async function confirmDeleteRole() {
+    const role = deleteRoleTarget;
+    setDeleteRoleTarget(null);
+    if (!role) return;
+    await supabase.from('roles').delete().eq('id', role.id);
+    await loadAll();
+  }
+
+  function startEditingRole(role) {
+    setEditingRoleId(role.id);
+    setEditingRoleName(role.name);
+  }
+
+  async function saveRoleName() {
+    const name = editingRoleName.trim();
+    const role = roles.find((r) => r.id === editingRoleId);
+    if (!name || !role || name === role.name) {
+      setEditingRoleId(null);
+      return;
+    }
+    const { data, error } = await supabase
+      .from('roles')
+      .update({ name })
+      .eq('id', editingRoleId)
+      .select('id');
+    setEditingRoleId(null);
+    if (error) { setToast({ message: error.message, type: 'error' }); return; }
+    if (!data || data.length === 0) {
+      setToast({ message: "Couldn't rename this role — you may not have permission.", type: 'error' });
+      return;
+    }
     await loadAll();
   }
 
@@ -535,17 +548,6 @@ export default function TeamRoles() {
                             </button>
                           )}
                         </div>
-                      ) : can('team.manage_roles') && m.user_id !== membership?.user_id ? (
-                        <button
-                          onClick={() => handleToggleSuspend(m)}
-                          className="text-xs px-2.5 py-1 rounded-lg border transition-colors hover:bg-[var(--color-canvas)]"
-                          style={{
-                            borderColor: 'var(--color-border)',
-                            color: m.status === 'active' ? 'var(--color-danger-fg)' : 'var(--color-success-fg)',
-                          }}
-                        >
-                          {m.status === 'active' ? 'Suspend' : 'Reactivate'}
-                        </button>
                       ) : (
                         <MoreHorizontal size={16} style={{ color: 'var(--color-ink-secondary)' }} />
                       )}
@@ -568,34 +570,60 @@ export default function TeamRoles() {
         >
           <Plus size={13} /> New custom role
         </button>
-        )}v
+        )}
       </div>
 
       <div className="grid gap-4" style={{ gridTemplateColumns: '160px 1fr' }}>
         <div className="flex flex-col gap-0.5">
           {roles.map((r) => (
-            <button
-              key={r.id}
-              onClick={() => setActiveRoleId(r.id)}
-              className="flex justify-between items-center px-2.5 py-2 rounded-lg text-left text-sm transition-colors group"
-              style={activeRoleId === r.id ? { background: 'var(--color-info-bg)', color: 'var(--color-info-fg)' } : {}}
-            >
-              <span>{r.name}</span>
-              <div className="flex items-center gap-1">
-                <span className="text-xs" style={{ color: activeRoleId === r.id ? 'var(--color-info-fg)' : 'var(--color-ink-tertiary)' }}>
-                  {memberCountForRole(r.id)}
-                </span>
-                {!r.is_locked && (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleDeleteRole(r.id); }}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity ml-1"
-                    style={{ color: 'var(--color-danger-fg)' }}
-                  >
-                    <X size={11} />
-                  </button>
-                )}
+            editingRoleId === r.id ? (
+              <div key={r.id} className="flex items-center gap-1 px-2.5 py-1.5">
+                <input
+                  autoFocus
+                  className="input-field text-sm flex-1 h-7 py-0"
+                  value={editingRoleName}
+                  onChange={(e) => setEditingRoleName(e.target.value)}
+                  onBlur={saveRoleName}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') e.currentTarget.blur();
+                    if (e.key === 'Escape') setEditingRoleId(null);
+                  }}
+                />
+                <Check size={13} style={{ color: 'var(--color-ink-tertiary)' }} />
               </div>
-            </button>
+            ) : (
+              <button
+                key={r.id}
+                onClick={() => setActiveRoleId(r.id)}
+                className="flex justify-between items-center px-2.5 py-2 rounded-lg text-left text-sm transition-colors group"
+                style={activeRoleId === r.id ? { background: 'var(--color-info-bg)', color: 'var(--color-info-fg)' } : {}}
+              >
+                <span>{r.name}</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs" style={{ color: activeRoleId === r.id ? 'var(--color-info-fg)' : 'var(--color-ink-tertiary)' }}>
+                    {memberCountForRole(r.id)}
+                  </span>
+                  {!r.is_locked && (
+                    <>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); startEditingRole(r); }}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity ml-1"
+                        style={{ color: activeRoleId === r.id ? 'var(--color-info-fg)' : 'var(--color-ink-tertiary)' }}
+                      >
+                        <Pencil size={11} />
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDeleteRole(r.id); }}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity"
+                        style={{ color: 'var(--color-danger-fg)' }}
+                      >
+                        <X size={11} />
+                      </button>
+                    </>
+                  )}
+                </div>
+              </button>
+            )
           ))}
         </div>
 
@@ -653,6 +681,17 @@ export default function TeamRoles() {
           danger
           onConfirm={() => handleCancelInvite(cancelTarget.id)}
           onCancel={() => setCancelTarget(null)}
+        />
+      )}
+
+      {deleteRoleTarget && (
+        <ConfirmDialog
+          title="Delete this role?"
+          message={`"${deleteRoleTarget.name}" will be removed. Members with this role will need to be reassigned.`}
+          confirmLabel="Delete"
+          danger
+          onConfirm={confirmDeleteRole}
+          onCancel={() => setDeleteRoleTarget(null)}
         />
       )}
 
