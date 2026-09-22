@@ -96,6 +96,7 @@ export default function LinkDetail() {
   const [error, setError] = useState('');
   const [showEditModal, setShowEditModal] = useState(false);
   const [pixelSaving, setPixelSaving] = useState(false);
+  const [reachedCount, setReachedCount] = useState(null);
   const [copied, setCopied] = useState(false);
 
   function handleCopyLink() {
@@ -109,6 +110,20 @@ export default function LinkDetail() {
     if (!id || !orgId) return;
     loadLink();
   }, [id, orgId]);
+
+  useEffect(() => {
+    if (!link?.pixel_enabled || !can('reports.funnel_view')) { setReachedCount(null); return; }
+    loadFunnelData();
+  }, [link?.id, link?.pixel_enabled]);
+
+  async function loadFunnelData() {
+    const { count } = await supabase
+      .from('funnel_events')
+      .select('id', { count: 'exact', head: true })
+      .eq('link_id', link.id)
+      .eq('step_key', 'reached_destination');
+    setReachedCount(count ?? 0);
+  }
 
   async function handlePixelUpdate(fields) {
     setPixelSaving(true);
@@ -328,7 +343,23 @@ export default function LinkDetail() {
                 </div>
                 <div className="card p-3.5">
                   <p className="text-xs mb-1" style={{ color: 'var(--color-ink-secondary)' }}>Conversion</p>
-                  <p className="text-xl font-medium">—</p>
+                  {!link.pixel_enabled ? (
+                    <button
+                      onClick={() => document.getElementById('conversion-tracking')?.scrollIntoView({ behavior: 'smooth' })}
+                      className="text-xs font-medium"
+                      style={{ color: 'var(--color-brand-blue)' }}
+                    >
+                      Enable tracking →
+                    </button>
+                  ) : !can('reports.funnel_view') ? (
+                    <p className="text-xl font-medium" title="You don't have permission to view funnel data">—</p>
+                  ) : (
+                    <p className="text-xl font-medium">
+                      {reachedCount !== null && totalScans > 0
+                        ? `${((reachedCount / totalScans) * 100).toFixed(1)}%`
+                        : '—'}
+                    </p>
+                  )}
                 </div>
                 <div className="card p-3.5">
                   <p className="text-xs mb-1" style={{ color: 'var(--color-ink-secondary)' }}>Peak hour</p>
@@ -419,7 +450,7 @@ export default function LinkDetail() {
       </div>
 
       {isRedirect && (
-        <div className="card p-4 mb-4">
+        <div id="conversion-tracking" className="card p-4 mb-4">
           <div className="flex items-center justify-between mb-1">
             <p className="text-sm font-medium">Conversion tracking</p>
             <button

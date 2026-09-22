@@ -105,6 +105,9 @@ export default function Dashboard() {
     ? ((uniqueScans / totalScans) * 100).toFixed(1)
     : 0;
 
+  const conversionRate = stats?.conversion_rate; // null when no pixel-enabled links have scans yet
+  const pixelScans = stats?.pixel_scans ?? 0;
+
   const rangeLabel = RANGE_OPTIONS.find((r) => r.value === dateRange)?.label ?? 'Last 30 days';
 
   const funnelSteps = [
@@ -149,7 +152,11 @@ export default function Dashboard() {
         <StatCard label="Total scans" value={totalScans.toLocaleString()} sublabel={rangeLabel} />
         <StatCard label="Unique visitors" value={uniqueScans.toLocaleString()} sublabel={`${uniquePct}% of scans`} />
         <StatCard label="Active links" value={activeLinks} sublabel="Excluding archived" />
-        <StatCard label="Conversion rate" value="—" sublabel="Requires tracking pixel" />
+        <StatCard
+          label="Conversion rate"
+          value={conversionRate !== null && conversionRate !== undefined ? `${conversionRate}%` : '—'}
+          sublabel={pixelScans > 0 ? `From ${pixelScans.toLocaleString()} tracked scans` : 'No pixel-enabled links yet'}
+        />
       </div>
 
       <div className="grid gap-4 mb-6" style={{ gridTemplateColumns: '1.4fr 1fr' }}>
