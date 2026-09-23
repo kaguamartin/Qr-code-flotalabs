@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, MoreHorizontal, X, AlertTriangle, ArrowLeftRight } from 'lucide-react';
-import { StatCard, StatusBadge } from '../components/Shared';
+import { StatCard, StatusBadge, Toast } from '../components/Shared';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -98,23 +98,92 @@ function OrgActionsModal({ org, onClose, onAction, onAssist }) {
 }
 
 function InviteModal({ onClose }) {
-  const [copied, setCopied] = useState(false);
+  const [email, setEmail] = useState('');
+  const [orgName, setOrgName] = useState('');
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState('');
+  const [sent, setSent] = useState(false);
+
+  async function handleSend() {
+    if (!email.trim()) { setError('Email is required.'); return; }
+    setSending(true);
+    setError('');
+
+    const { data: { session } } = await supabase.auth.getSession();
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invite-client`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`,
+          'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({ email: email.trim(), org_name: orgName.trim() || undefined }),
+      }
+    );
+    const result = await response.json();
+    setSending(false);
+
+    if (!response.ok) { setError(result.error ?? 'Failed to send invite.'); return; }
+    setSent(true);
+  }
+
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50" style={{ background: 'rgba(0,0,0,0.4)' }}>
       <div className="card p-6 w-full max-w-sm relative">
-        {copied && (
-          <div className="absolute top-[-40px] left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-lg text-xs font-medium" style={{ background: 'var(--color-success-bg)', color: 'var(--color-success-fg)', whiteSpace: 'nowrap' }}>
-            ✓ Link copied to clipboard
-          </div>
-        )}
         <h2 className="text-sm font-medium mb-1">Invite a client</h2>
-        <p className="text-xs mb-4" style={{ color: 'var(--color-ink-secondary)' }}>Share this link with your client — they'll sign up and set up their own workspace.</p>
-        <div className="flex gap-2 mb-4">
-          <input readOnly className="input-field flex-1 font-mono text-xs" value={`${window.location.origin}/signup`} />
-          <button className="btn-secondary text-xs" onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/signup`); setCopied(true); setTimeout(() => setCopied(false), 2000); }}>Copy</button>
-        </div>
-        <p className="text-xs mb-4" style={{ color: 'var(--color-ink-tertiary)' }}>Email invite coming soon — this will send directly from Flota Labs once configured.</p>
-        <button className="btn-secondary w-full justify-center" onClick={onClose}>Close</button>
+
+        {sent ? (
+          <>
+            <p className="text-xs mb-4" style={{ color: 'var(--color-ink-secondary)' }}>
+              Invite sent to <span className="font-medium">{email}</span>. They'll get an email with a link to set their
+              password{orgName ? `, with their workspace already named "${orgName}"` : ' and create their own workspace'}.
+            </p>
+            <button className="btn-secondary w-full justify-center" onClick={onClose}>Close</button>
+          </>
+        ) : (
+          <>
+            <p className="text-xs mb-4" style={{ color: 'var(--color-ink-secondary)' }}>
+              Sends a real invite email from Flota Labs — they'll click through to set a password and get started.
+            </p>
+
+            {error && (
+              <p className="text-xs mb-3 px-3 py-2 rounded-lg" style={{ background: 'var(--color-danger-bg)', color: 'var(--color-danger-fg)' }}>
+                {error}
+              </p>
+            )}
+
+            <label className="text-xs block mb-1.5" style={{ color: 'var(--color-ink-secondary)' }}>Client email</label>
+            <input
+              type="email"
+              className="input-field w-full mb-3 text-sm"
+              placeholder="client@company.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+
+            <label className="text-xs block mb-1.5" style={{ color: 'var(--color-ink-secondary)' }}>
+              Workspace name <span style={{ color: 'var(--color-ink-tertiary)' }}>(optional)</span>
+            </label>
+            <input
+              className="input-field w-full mb-1" 
+              placeholder="Leave blank and they'll choose their own"
+              value={orgName}
+              onChange={(e) => setOrgName(e.target.value)}
+            />
+            <p className="text-[11px] mb-4" style={{ color: 'var(--color-ink-tertiary)' }}>
+              Pre-fills their workspace name during setup — they can still change it.
+            </p>
+
+            <div className="flex gap-2">
+              <button className="btn-secondary flex-1 justify-center" onClick={onClose}>Cancel</button>
+              <button className="btn-primary flex-1 justify-center disabled:opacity-60" disabled={sending} onClick={handleSend}>
+                {sending ? 'Sending...' : 'Send invite'}
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

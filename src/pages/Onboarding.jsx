@@ -32,6 +32,14 @@ export default function Onboarding() {
 
 
 useEffect(() => {
+    const invitedName = user?.user_metadata?.invited_org_name;
+    if (invitedName && !orgName) {
+      setOrgName(invitedName);
+      setOrgSlug(generateSlug(invitedName));
+    }
+  }, [user]);
+
+useEffect(() => {
     if (loading) return;
     if (!user) {
       navigate('/login', { replace: true });
