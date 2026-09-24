@@ -11,6 +11,12 @@ export function AuthProvider({ children }) {
   const [membershipLoading, setMembershipLoading] = useState(true);
   const [assistOrg, setAssistOrg] = useState(null);
   const [assistSessionId, setAssistSessionId] = useState(null);
+  const [needsPassword, setNeedsPassword] = useState(sessionStorage.getItem('flota_needs_password') === 'true');
+
+  function clearNeedsPassword() {
+    sessionStorage.removeItem('flota_needs_password');
+    setNeedsPassword(false);
+  }
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -185,6 +191,8 @@ export function AuthProvider({ children }) {
     hasOrg: membership?.status === 'active',
     isInvited: membership?.status === 'invited',
     isSuspended: membership?.status === 'suspended',
+    needsPassword,
+    clearNeedsPassword,
     isAssistMode: !!assistOrg,
     assistOrg,
     can,
