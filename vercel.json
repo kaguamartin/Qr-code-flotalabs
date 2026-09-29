@@ -4,7 +4,15 @@
   "framework": "vite",
   "rewrites": [
     {
+      "source": "/app",
+      "destination": "/index.html"
+    },
+    {
       "source": "/app/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/admin",
       "destination": "/index.html"
     },
     {
@@ -12,11 +20,23 @@
       "destination": "/index.html"
     },
     {
+      "source": "/auth",
+      "destination": "/index.html"
+    },
+    {
       "source": "/auth/:path*",
       "destination": "/index.html"
     },
     {
+      "source": "/p",
+      "destination": "/index.html"
+    },
+    {
       "source": "/p/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/c",
       "destination": "/index.html"
     },
     {
