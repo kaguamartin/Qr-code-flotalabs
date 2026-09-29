@@ -5,7 +5,7 @@ import { StatCard, StatusBadge, Toast } from '../components/Shared';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 
-function OrgActionsModal({ org, onClose, onAction, onAssist }) {
+export function OrgActionsModal({ org, onClose, onAction, onAssist }) {
   const [view, setView] = useState('menu');
   const [confirmText, setConfirmText] = useState('');
   const [loading, setLoading] = useState(false);
@@ -303,7 +303,12 @@ export default function SuperAdmin() {
               <tr><td colSpan={7} className="px-5 py-8 text-center text-sm" style={{ color: 'var(--color-ink-tertiary)' }}>{search ? 'No clients match your search.' : 'No client workspaces yet — invite your first client to get started.'}</td></tr>
             ) : (
               filtered.map((org) => (
-                <tr key={org.id} className="border-t hover:bg-[var(--color-canvas)]" style={{ borderColor: 'var(--color-border)', opacity: org.status === 'suspended' ? 0.6 : 1 }}>
+                <tr
+                  key={org.id}
+                  onClick={() => navigate(`/admin/orgs/${org.id}`)}
+                  className="border-t hover:bg-[var(--color-canvas)] cursor-pointer"
+                  style={{ borderColor: 'var(--color-border)', opacity: org.status === 'suspended' ? 0.6 : 1 }}
+                >
                   <td className="px-5 py-2.5">
                     <p className="font-medium">{org.name}</p>
                     <p className="text-xs" style={{ color: 'var(--color-ink-tertiary)' }}>{org.industry ?? '—'}</p>

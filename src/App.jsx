@@ -15,6 +15,7 @@ import TeamRoles from './pages/TeamRoles';
 import Integrations from './pages/Integrations';
 import Settings from './pages/Settings';
 import SuperAdmin from './pages/SuperAdmin';
+import SuperAdminOrgDetail from './pages/SuperAdminOrgDetail';
 import PublicBioPage from './pages/PublicBioPage';
 import PublicContactCard from './pages/PublicContactCard';
 
@@ -32,6 +33,7 @@ export default function App() {
         <Route path="/reset-password" element={<ResetPassword />} />
 
         <Route path="/admin" element={<SuperAdminRoute><SuperAdmin /></SuperAdminRoute>} />
+        <Route path="/admin/orgs/:orgId" element={<SuperAdminRoute><SuperAdminOrgDetail /></SuperAdminRoute>} />
 
         <Route path="/app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
           <Route index element={<Dashboard />} />
