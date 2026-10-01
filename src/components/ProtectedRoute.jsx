@@ -3,6 +3,25 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 
+function NoWorkspaceScreen() {
+  return (
+    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'var(--color-canvas)' }}>
+      <div className="card p-8 w-full max-w-sm text-center">
+        <div
+          className="w-8 h-8 rounded-lg shrink-0 mx-auto mb-4"
+          style={{ background: 'linear-gradient(135deg, var(--color-brand-purple), var(--color-brand-blue))' }}
+        />
+        <h1 className="text-lg font-medium mb-2">You're browsing as super admin</h1>
+        <p className="text-sm mb-5" style={{ color: 'var(--color-ink-secondary)' }}>
+          This page belongs to a client workspace, and your account isn't a member of one. Head to the admin
+          dashboard to manage clients, or use Assist mode to work inside a specific workspace.
+        </p>
+        <a href="/admin" className="btn-primary w-full justify-center inline-flex">Go to admin dashboard</a>
+      </div>
+    </div>
+  );
+}
+
 function SuspendedScreen() {
   return (
     <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'var(--color-canvas)' }}>
@@ -95,7 +114,7 @@ function SetPasswordScreen({ onDone }) {
 }
 
 export function ProtectedRoute({ children }) {
-  const { session, loading, hasOrg, isSuspended, isSuperAdmin, needsPassword, clearNeedsPassword } = useAuth();
+  const { session, loading, hasOrg, isSuspended, isSuperAdmin, isAssistMode, needsPassword, clearNeedsPassword } = useAuth();
 
   if (loading) {
     return (
@@ -125,6 +144,10 @@ export function ProtectedRoute({ children }) {
 
   // only redirect to onboarding once loading is complete
   // and we're certain the user has no org
+  if (!hasOrg && isSuperAdmin && !isAssistMode) {
+    return <NoWorkspaceScreen />;
+  }
+
   if (!hasOrg && !isSuperAdmin) {
     return <Navigate to="/onboarding" replace />;
   }
