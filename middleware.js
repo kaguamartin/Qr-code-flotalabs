@@ -24,7 +24,14 @@ const APP_ROUTE_PREFIXES = [
   '/reset-password',
 ];
 
-const APP_ROUTE_EXACT = new Set(['/signup', '/login', '/onboarding', '/forgot-password', '/reset-password']);
+const APP_ROUTE_EXACT = new Set([
+  '/signup', '/login', '/onboarding', '/forgot-password', '/reset-password',
+  // bare section roots (no trailing slash) - the prefix checks above only
+  // match '/app/...' etc, never the bare '/app' itself, so without these
+  // middleware treats a bare section root as an unknown short code instead
+  // of letting it through to the SPA.
+  '/app', '/admin', '/auth', '/p', '/c',
+]);
 
 function isAppPath(pathname) {
   if (APP_ROUTE_PREFIXES.some((p) => pathname.startsWith(p))) return true;
