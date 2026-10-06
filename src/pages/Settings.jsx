@@ -578,7 +578,7 @@ const NAV_BOTTOM = [
 export default function Settings() {
   const { profile, membership, signOut, can } = useAuth();
   const [org, setOrg] = useState(membership?.organizations ?? null);
-  const [activeSection, setActiveSection] = useState('general');
+  const [activeSection, setActiveSection] = useState(membership?.organizations ? 'general' : 'profile');
 
   useEffect(() => {
     setOrg(membership?.organizations ?? null);
@@ -623,10 +623,14 @@ export default function Settings() {
     <div className="flex gap-6">
       {/* sidebar nav */}
       <div className="w-44 shrink-0">
-        <p className="text-xs uppercase tracking-wide mb-2 px-2" style={{ color: 'var(--color-ink-tertiary)' }}>Workspace</p>
-        <div className="flex flex-col gap-0.5 mb-4">
-          {NAV_TOP.map((item) => <NavItem key={item.key} item={item} />)}
-        </div>
+        {org && (
+          <>
+            <p className="text-xs uppercase tracking-wide mb-2 px-2" style={{ color: 'var(--color-ink-tertiary)' }}>Workspace</p>
+            <div className="flex flex-col gap-0.5 mb-4">
+              {NAV_TOP.map((item) => <NavItem key={item.key} item={item} />)}
+            </div>
+          </>
+        )}
         <p className="text-xs uppercase tracking-wide mb-2 px-2" style={{ color: 'var(--color-ink-tertiary)' }}>Account</p>
         <div className="flex flex-col gap-0.5">
           {NAV_BOTTOM.map((item) => <NavItem key={item.key} item={item} />)}

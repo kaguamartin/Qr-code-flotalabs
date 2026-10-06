@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 
@@ -115,6 +115,7 @@ function SetPasswordScreen({ onDone }) {
 
 export function ProtectedRoute({ children }) {
   const { session, loading, hasOrg, isSuspended, isSuperAdmin, isAssistMode, needsPassword, clearNeedsPassword } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -144,7 +145,11 @@ export function ProtectedRoute({ children }) {
 
   // only redirect to onboarding once loading is complete
   // and we're certain the user has no org
-  if (!hasOrg && isSuperAdmin && !isAssistMode) {
+  // Settings is exempt: its Account section (profile, password, security)
+  // doesn't need an org at all, and a super admin still needs to manage
+  // their own account regardless of client membership. Settings.jsx itself
+  // hides the org-dependent Workspace section when there's no org.
+  if (!hasOrg && isSuperAdmin && !isAssistMode && !location.pathname.startsWith('/app/settings')) {
     return <NoWorkspaceScreen />;
   }
 
