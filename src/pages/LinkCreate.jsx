@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import * as Icons from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
@@ -15,6 +15,10 @@ export default function LinkCreate() {
   const { membership, user } = useAuth();
   const orgId = membership?.organizations?.id;
   const orgSlug = membership?.organizations?.slug ?? '';
+
+  const location = useLocation();
+  const duplicateFrom = location.state?.duplicateFrom;
+  const [duplicateApplied, setDuplicateApplied] = useState(false);
 
   const [step, setStep] = useState(1);
   const [destinationGroups, setDestinationGroups] = useState([]);
@@ -62,6 +66,42 @@ export default function LinkCreate() {
     if (campaignsResult.data) setCampaigns(campaignsResult.data);
     setLoading(false);
   }
+
+  useEffect(() => {
+    if (duplicateApplied || !duplicateFrom || destinationGroups.length === 0) return;
+    const allTypes = destinationGroups.flatMap((g) => g.types);
+    const type = allTypes.find((t) => t.id === duplicateFrom.destination_type_id);
+    if (!type) { setDuplicateApplied(true); return; }
+
+    setActiveType(type);
+    setFieldValues(duplicateFrom.destination_data ?? {});
+    setFieldErrors({});
+
+    if (type.key === 'social') {
+      const platform = socialPlatforms.find((p) => p.key === duplicateFrom.destination_data?.platform);
+      setSelectedPlatform(platform ?? null);
+    } else {
+      setSelectedPlatform(null);
+    }
+
+    // short code deliberately NOT copied - guaranteed collision with the
+    // original otherwise, and a fresh slug based on the type name is the
+    // same starting point a normal new selection would give
+    if (type.encoding_mode === 'redirect') {
+      const slug = type.display_name
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, '')
+        .replace(/\s+/g, '-')
+        .slice(0, 15);
+      setShortCodeSuffix(slug);
+    }
+
+    if (duplicateFrom.campaign_id) setCampaignId(duplicateFrom.campaign_id);
+    if (duplicateFrom.corridor) setCorridor(duplicateFrom.corridor);
+
+    setStep(2);
+    setDuplicateApplied(true);
+  }, [duplicateFrom, destinationGroups, socialPlatforms, duplicateApplied]);
 
   const checkShortCode = useCallback(async (suffix) => {
     if (!suffix || suffix.length < 2) { setShortCodeAvailable(null); return; }
@@ -164,23 +204,9 @@ export default function LinkCreate() {
       ? { ...fieldValues, platform: selectedPlatform?.key }
       : fieldValues;
 
-    let shortCode = activeType?.encoding_mode === 'redirect'
+    const shortCode = activeType?.encoding_mode === 'redirect'
       ? `${orgSlug}-${shortCodeSuffix}`.trim()
-      : `${orgSlug}-${activeType.key}`;
-
-    if (activeType?.encoding_mode !== 'redirect') {
-      // raw types don't collect a suffix from the user, so check for a
-      // collision and only append a short random suffix if actually needed -
-      // same pattern already used for bio page short codes.
-      const { data: existing } = await supabase
-        .from('links')
-        .select('id')
-        .eq('short_code', shortCode)
-        .maybeSingle();
-      if (existing) {
-        shortCode = `${orgSlug}-${activeType.key}-${Math.floor(Math.random() * 900 + 100)}`;
-      }
-    }
+      : `${orgSlug}-${activeType.key}-${Date.now()}`;
 
     const { error: linkError } = await supabase
       .from('links')
